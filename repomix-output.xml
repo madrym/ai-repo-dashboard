@@ -1,0 +1,2331 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+The content has been processed where content has been compressed (code blocks are separated by ⋮---- delimiter).
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Content has been compressed - code blocks are separated by ⋮---- delimiter
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+<additional_info>
+
+</additional_info>
+
+</file_summary>
+
+<directory_structure>
+app/
+  api/
+    analyze-feature/
+      route.ts
+    generate-plan/
+      route.ts
+  auth/
+    page.tsx
+  dashboard/
+    loading.tsx
+    page.tsx
+  dependencies/
+    loading.tsx
+    page.tsx
+  features/
+    [id]/
+      files/
+        page.tsx
+      page.tsx
+  history/
+    loading.tsx
+    page.tsx
+  planner/
+    page.tsx
+  templates/
+    [id]/
+      page.tsx
+    create/
+      page.tsx
+    loading.tsx
+    page.tsx
+  globals.css
+  layout.tsx
+  page.tsx
+components/
+  ui/
+    accordion.tsx
+    alert-dialog.tsx
+    alert.tsx
+    aspect-ratio.tsx
+    avatar.tsx
+    badge.tsx
+    breadcrumb.tsx
+    button.tsx
+    calendar.tsx
+    card.tsx
+    carousel.tsx
+    chart.tsx
+    checkbox.tsx
+    collapsible.tsx
+    command.tsx
+    context-menu.tsx
+    dialog.tsx
+    drawer.tsx
+    dropdown-menu.tsx
+    form.tsx
+    hover-card.tsx
+    icons.tsx
+    input-otp.tsx
+    input.tsx
+    label.tsx
+    menubar.tsx
+    navigation-menu.tsx
+    pagination.tsx
+    popover.tsx
+    progress.tsx
+    radio-group.tsx
+    resizable.tsx
+    scroll-area.tsx
+    select.tsx
+    separator.tsx
+    sheet.tsx
+    sidebar.tsx
+    skeleton.tsx
+    slider.tsx
+    sonner.tsx
+    switch.tsx
+    table.tsx
+    tabs.tsx
+    textarea.tsx
+    toast.tsx
+    toaster.tsx
+    toggle-group.tsx
+    toggle.tsx
+    tooltip.tsx
+    use-mobile.tsx
+    use-toast.ts
+  code-viewer.tsx
+  dependency-details.tsx
+  dependency-graph.tsx
+  dependency-list.tsx
+  feature-card.tsx
+  file-explorer.tsx
+  markdown-editor.tsx
+  repo-summary.tsx
+  repository-insights.tsx
+  repository-timeline.tsx
+  search-results.tsx
+  spec-conversation.tsx
+  spec-editor.tsx
+  spec-version-diff.tsx
+  spec-version-selector.tsx
+  stepper.tsx
+  template-card.tsx
+  theme-provider.tsx
+  theme-toggle.tsx
+hooks/
+  use-mobile.tsx
+  use-toast.ts
+lib/
+  template-data.ts
+  utils.ts
+public/
+  placeholder-logo.svg
+  placeholder.svg
+styles/
+  globals.css
+.cursorrules
+components.json
+next-env.d.ts
+next.config.mjs
+package.json
+postcss.config.mjs
+tailwind.config.ts
+tsconfig.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="app/api/analyze-feature/route.ts">
+import { NextResponse } from "next/server"
+import { generateObject } from "ai"
+import { openai } from "@ai-sdk/openai"
+⋮----
+// Define the structure for our form fields
+export interface FormField {
+  id: string
+  type: "select" | "checkbox" | "text" | "textarea"
+  label: string
+  description?: string
+  options?: string[]
+  required?: boolean
+}
+⋮----
+// Define the structure for our form schema
+export interface FormSchema {
+  fields: FormField[]
+  featureType: string
+  featureSummary: string
+}
+⋮----
+// Mock data to use as fallback when the AI service is unavailable
+⋮----
+export async function POST(request: Request)
+⋮----
+// Parse the request body
+⋮----
+// Check if body was successfully parsed
+⋮----
+// Generate a custom form schema based on the feature idea
+⋮----
+// Return the mock data as a fallback when the AI service fails
+⋮----
+// Return a proper JSON error response
+</file>
+
+<file path="app/api/generate-plan/route.ts">
+import { NextResponse } from "next/server"
+import { generateObject } from "ai"
+import { openai } from "@ai-sdk/openai"
+⋮----
+interface PlanningDocument {
+  planningMd: string
+  taskMd: string
+}
+⋮----
+// Mock data to use as fallback when the AI service is unavailable
+⋮----
+export async function POST(request: Request)
+⋮----
+// Parse the request body
+⋮----
+// Check if body was successfully parsed
+⋮----
+// Convert form data to a string representation for the prompt
+⋮----
+// Generate planning documents based on the feature idea and form data
+⋮----
+// Return the mock data as a fallback when the AI service fails
+⋮----
+// Customize the mock data with the feature idea
+⋮----
+// Return a proper JSON error response
+</file>
+
+<file path="app/auth/page.tsx">
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Github, Lock } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { toast } from "@/components/ui/use-toast"
+import { ThemeToggle } from "@/components/theme-toggle"
+⋮----
+export default function AuthPage()
+⋮----
+const handleConnect = async () =>
+⋮----
+// Simulate authentication and repository connection
+</file>
+
+<file path="app/dashboard/loading.tsx">
+export default function Loading()
+</file>
+
+<file path="app/dashboard/page.tsx">
+import { useEffect } from "react"
+⋮----
+import { useState } from "react"
+import Link from "next/link"
+import {
+  ArrowLeft,
+  Code,
+  FileText,
+  History,
+  Info,
+  Languages,
+  Package,
+  SearchIcon,
+  TestTube,
+  X,
+  GitPullRequest,
+  GitBranch,
+  CheckCircle,
+  Shield,
+  Server,
+  Workflow,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { FileExplorer } from "@/components/file-explorer"
+import { CodeViewer } from "@/components/code-viewer"
+import { RepoSummary } from "@/components/repo-summary"
+import { ResizablePanel, ResizablePanelGroup, ResizableHandle } from "@/components/ui/resizable"
+import { Input } from "@/components/ui/input"
+import { SearchResults } from "@/components/search-results"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { ThemeToggle } from "@/components/theme-toggle"
+⋮----
+// Enhanced mock data
+⋮----
+// Handle file search
+⋮----
+// Simulate search delay
+⋮----
+// Search through file structure
+⋮----
+// Recursive function to search through file structure
+const searchFiles = (files: any[], query: string): any[] =>
+⋮----
+// Check if file name matches query
+⋮----
+// If it's a directory, search its children
+⋮----
+const handleFileSelect = (path: string | null) =>
+⋮----
+// Clear in-file search when selecting a new file
+⋮----
+const clearSearch = () =>
+⋮----
+// Helper function to render status badges
+const renderStatusBadge = (status: string) =>
+⋮----
+<Tabs value=
+⋮----
+{/* Overview Tab */}
+⋮----
+{/* CI/CD Tab */}
+⋮----
+
+⋮----
+{/* Tools Tab */}
+⋮----
+{/* PR Tab */}
+⋮----
+{/* Code Explorer with Split View */}
+⋮----
+{/* File Explorer Panel */}
+⋮----
+{/* Search Bar */}
+⋮----
+{/* File Explorer or Search Results */}
+⋮----
+{/* Resizable Handle */}
+⋮----
+{/* Code/Docs Viewer Panel */}
+</file>
+
+<file path="app/dependencies/loading.tsx">
+export default function Loading()
+</file>
+
+<file path="app/dependencies/page.tsx">
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import {
+  ArrowLeft,
+  Search,
+  X,
+  ZoomIn,
+  ZoomOut,
+  RefreshCw,
+  Download,
+  Info,
+  ChevronRight,
+  FileCode,
+  FolderOpen,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { DependencyGraph } from "@/components/dependency-graph"
+import { toast } from "@/components/ui/use-toast"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
+⋮----
+// Mock data for dependency analysis
+⋮----
+// Mock file structure for the repository
+⋮----
+// Handle file search
+⋮----
+// Recursive function to search through file structure
+const searchFiles = (files: any[], query: string): any[] =>
+⋮----
+// Check if file name matches query
+⋮----
+// If it's a directory, search its children
+⋮----
+// Handle refresh of dependency data
+const handleRefreshData = () =>
+⋮----
+// Simulate API call
+⋮----
+// Handle download of dependency data
+const handleDownloadData = () =>
+⋮----
+// In a real app, this would trigger a file download
+⋮----
+// Format date to be more readable
+const formatDate = (dateString: string) =>
+⋮----
+// Toggle folder expansion
+const toggleFolder = (folder: string) =>
+⋮----
+// Render file structure recursively
+⋮----
+className=
+⋮----
+// Render search results
+⋮----
+
+⋮----
+onValueChange=
+⋮----
+{/* Mock dependencies */}
+⋮----
+{/* Mock dependents */}
+</file>
+
+<file path="app/features/[id]/files/page.tsx">
+import { useState } from "react"
+import Link from "next/link"
+import { ArrowLeft, Download, FileText } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { ThemeToggle } from "@/components/theme-toggle"
+⋮----
+// Mock feature specification data - simplified for this view
+⋮----
+const handleDownloadFile = () =>
+⋮----
+// Create a blob with the content
+⋮----
+// Create a temporary link and trigger download
+⋮----
+// Clean up
+⋮----
+// Get file extension
+const getFileExtension = (path: string) =>
+⋮----
+// Get file icon based on extension
+const getFileIcon = (path: string) =>
+</file>
+
+<file path="app/features/[id]/page.tsx">
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { ArrowLeft, ChevronDown, ChevronRight, Download, Edit, FileText, GitCommit, History } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { SpecVersionDiff } from "@/components/spec-version-diff"
+import { SpecEditor } from "@/components/spec-editor"
+import { SpecConversation } from "@/components/spec-conversation"
+import { SpecVersionSelector } from "@/components/spec-version-selector"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { ThemeToggle } from "@/components/theme-toggle"
+⋮----
+// Mock feature specification data
+⋮----
+// Find the selected version
+⋮----
+// Initialize edit content when switching to edit mode
+⋮----
+const handleSaveEdit = () =>
+⋮----
+// In a real app, this would save the edit to the backend
+⋮----
+// Would typically refresh data here
+⋮----
+const handleExportSpec = () =>
+⋮----
+// Create a blob with the content
+⋮----
+// Create a temporary link and trigger download
+⋮----
+// Clean up
+⋮----
+// Format date to be more readable
+const formatDate = (dateString: string) =>
+⋮----
+{/* Feature Details Card */}
+⋮----
+{/* Original Prompt Card */}
+⋮----
+{/* Version History Card */}
+⋮----
+
+⋮----
+{/* Specification Tab */}
+⋮----
+{/* Conversation Tab */}
+⋮----
+{/* Compare Versions Tab */}
+⋮----
+{/* File Structure */}
+</file>
+
+<file path="app/history/loading.tsx">
+export default function Loading()
+</file>
+
+<file path="app/history/page.tsx">
+import { useState } from "react"
+import Link from "next/link"
+import { ArrowLeft, Calendar, GitBranch, GitPullRequest, Search, Tag, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { FeatureCard } from "@/components/feature-card"
+import { RepositoryTimeline } from "@/components/repository-timeline"
+import { RepositoryInsights } from "@/components/repository-insights"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { Badge } from "@/components/ui/badge"
+⋮----
+// Mock data for past features
+⋮----
+// Mock data for repository memory
+⋮----
+// Filter features based on search query and filters
+⋮----
+// Filter repository memory based on search query and timeline filter
+⋮----
+// Simple timeline filtering based on date
+⋮----
+const clearSearch = () =>
+⋮----
+{/* Header */}
+⋮----
+{/* Search bar */}
+⋮----
+{/* Main tabs */}
+⋮----
+{/* Features Tab */}
+⋮----
+{/* Timeline Tab */}
+⋮----
+{/* Insights Tab */}
+</file>
+
+<file path="app/planner/page.tsx">
+import { useState, useEffect } from "react"
+import { ThemeToggle } from "@/components/theme-toggle"
+import Link from "next/link"
+import {
+  ArrowLeft,
+  Check,
+  ChevronRight,
+  Edit,
+  Github,
+  Loader2,
+  SendHorizontal,
+  LayoutTemplateIcon as Template,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { MarkdownEditor } from "@/components/markdown-editor"
+import { toast } from "@/components/ui/use-toast"
+import { Stepper, Step } from "@/components/stepper"
+import { Badge } from "@/components/ui/badge"
+import type { FormField } from "@/app/api/analyze-feature/route"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+⋮----
+// Mock template data
+⋮----
+// Check if there's a saved feature from a template
+⋮----
+// Skip to review step
+⋮----
+// Clear the saved feature
+⋮----
+// Update the handleAnalyzeFeature function to handle errors better
+const handleAnalyzeFeature = async () =>
+⋮----
+// First check if the response is OK
+⋮----
+// Try to get error details from the response
+⋮----
+// Now try to parse the response as JSON
+⋮----
+// Validate the response data
+⋮----
+// Initialize form values with empty defaults
+⋮----
+const updateFormField = (fieldId: string, value: any) =>
+⋮----
+// Update the handleGeneratePlan function to handle errors better
+const handleGeneratePlan = async () =>
+⋮----
+// First check if the response is OK
+⋮----
+// Try to get error details from the response
+⋮----
+// Now try to parse the response as JSON
+⋮----
+// Validate the response data
+⋮----
+const handleCreatePR = () =>
+⋮----
+// Simulate PR creation
+⋮----
+{/* Template Selection Dialog */}
+⋮----
+{/* Template cards */}
+⋮----
+// Navigate to the template page
+</file>
+
+<file path="app/templates/[id]/page.tsx">
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { ArrowLeft, Edit, Star, StarOff, Trash } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { MarkdownEditor } from "@/components/markdown-editor"
+import { toast } from "@/components/ui/use-toast"
+import { templateData } from "@/lib/template-data"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { ThemeToggle } from "@/components/theme-toggle"
+⋮----
+// Find template by ID
+⋮----
+const handleToggleFavorite = () =>
+⋮----
+const handleUseTemplate = () =>
+⋮----
+// In a real app, we would save this to the user's session or database
+⋮----
+const handleDeleteTemplate = () =>
+⋮----
+// In a real app, we would delete from the database
+</file>
+
+<file path="app/templates/create/page.tsx">
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { ArrowLeft, Plus, Save, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { MarkdownEditor } from "@/components/markdown-editor"
+import { toast } from "@/components/ui/use-toast"
+import { Badge } from "@/components/ui/badge"
+import { ThemeToggle } from "@/components/theme-toggle"
+⋮----
+const handleAddTag = () =>
+⋮----
+const handleRemoveTag = (tagToRemove: string) =>
+⋮----
+const handleSaveTemplate = () =>
+⋮----
+// In a real app, we would save to a database
+⋮----
+// Navigate back to templates page
+⋮----
+onChange=
+</file>
+
+<file path="app/templates/loading.tsx">
+export default function Loading()
+</file>
+
+<file path="app/templates/page.tsx">
+import { useState } from "react"
+import Link from "next/link"
+import { ArrowLeft, Filter, Plus, Search, Tag } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { TemplateCard } from "@/components/template-card"
+import { templateData } from "@/lib/template-data"
+import { ThemeToggle } from "@/components/theme-toggle"
+⋮----
+// Extract unique categories from template data
+⋮----
+// Filter templates based on search query and selected category
+</file>
+
+<file path="app/globals.css">
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+⋮----
+@layer base {
+⋮----
+:root {
+⋮----
+.dark {
+⋮----
+* {
+⋮----
+@apply border-border;
+⋮----
+body {
+</file>
+
+<file path="app/layout.tsx">
+import type React from "react"
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+⋮----
+import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/toaster"
+⋮----
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>)
+</file>
+
+<file path="app/page.tsx">
+import { Github } from "lucide-react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { ThemeToggle } from "@/components/theme-toggle"
+⋮----
+export default function Home()
+</file>
+
+<file path="components/ui/accordion.tsx">
+import { ChevronDown } from "lucide-react"
+⋮----
+import { cn } from "@/lib/utils"
+⋮----
+className=
+</file>
+
+<file path="components/ui/alert-dialog.tsx">
+import { cn } from "@/lib/utils"
+import { buttonVariants } from "@/components/ui/button"
+</file>
+
+<file path="components/ui/alert.tsx">
+import { cva, type VariantProps } from "class-variance-authority"
+⋮----
+import { cn } from "@/lib/utils"
+⋮----
+className=
+</file>
+
+<file path="components/ui/aspect-ratio.tsx">
+
+</file>
+
+<file path="components/ui/avatar.tsx">
+import { cn } from "@/lib/utils"
+</file>
+
+<file path="components/ui/badge.tsx">
+import { cva, type VariantProps } from "class-variance-authority"
+⋮----
+import { cn } from "@/lib/utils"
+⋮----
+export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
+⋮----
+<span className=
+</file>
+
+<file path="components/ui/breadcrumb.tsx">
+import { Slot } from "@radix-ui/react-slot"
+import { ChevronRight, MoreHorizontal } from "lucide-react"
+⋮----
+import { cn } from "@/lib/utils"
+⋮----
+className=
+</file>
+
+<file path="components/ui/button.tsx">
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
+⋮----
+import { cn } from "@/lib/utils"
+⋮----
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+}
+</file>
+
+<file path="components/ui/calendar.tsx">
+import { ChevronLeft, ChevronRight } from "lucide-react"
+import { DayPicker } from "react-day-picker"
+⋮----
+import { cn } from "@/lib/utils"
+import { buttonVariants } from "@/components/ui/button"
+⋮----
+export type CalendarProps = React.ComponentProps<typeof DayPicker>
+</file>
+
+<file path="components/ui/card.tsx">
+import { cn } from "@/lib/utils"
+⋮----
+className=
+⋮----
+<div ref=
+</file>
+
+<file path="components/ui/carousel.tsx">
+import useEmblaCarousel, {
+  type UseEmblaCarouselType,
+} from "embla-carousel-react"
+import { ArrowLeft, ArrowRight } from "lucide-react"
+⋮----
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+⋮----
+type CarouselApi = UseEmblaCarouselType[1]
+type UseCarouselParameters = Parameters<typeof useEmblaCarousel>
+type CarouselOptions = UseCarouselParameters[0]
+type CarouselPlugin = UseCarouselParameters[1]
+⋮----
+type CarouselProps = {
+  opts?: CarouselOptions
+  plugins?: CarouselPlugin
+  orientation?: "horizontal" | "vertical"
+  setApi?: (api: CarouselApi) => void
+}
+⋮----
+type CarouselContextProps = {
+  carouselRef: ReturnType<typeof useEmblaCarousel>[0]
+  api: ReturnType<typeof useEmblaCarousel>[1]
+  scrollPrev: () => void
+  scrollNext: () => void
+  canScrollPrev: boolean
+  canScrollNext: boolean
+} & CarouselProps
+⋮----
+function useCarousel()
+</file>
+
+<file path="components/ui/chart.tsx">
+import { cn } from "@/lib/utils"
+⋮----
+// Format: { THEME_NAME: CSS_SELECTOR }
+⋮----
+export type ChartConfig = {
+  [k in string]: {
+    label?: React.ReactNode
+    icon?: React.ComponentType
+  } & (
+    | { color?: string; theme?: never }
+    | { color?: never; theme: Record<keyof typeof THEMES, string> }
+  )
+}
+⋮----
+type ChartContextProps = {
+  config: ChartConfig
+}
+⋮----
+function useChart()
+⋮----
+className=
+⋮----
+<div className=
+⋮----
+// Helper to extract item config from a payload.
+</file>
+
+<file path="components/ui/checkbox.tsx">
+import { Check } from "lucide-react"
+⋮----
+import { cn } from "@/lib/utils"
+⋮----
+className=
+</file>
+
+<file path="components/ui/collapsible.tsx">
+
+</file>
+
+<file path="components/ui/command.tsx">
+import { type DialogProps } from "@radix-ui/react-dialog"
+import { Command as CommandPrimitive } from "cmdk"
+import { Search } from "lucide-react"
+⋮----
+import { cn } from "@/lib/utils"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
+⋮----
+className=
+</file>
+
+<file path="components/ui/context-menu.tsx">
+import { Check, ChevronRight, Circle } from "lucide-react"
+⋮----
+import { cn } from "@/lib/utils"
+⋮----
+className=
+</file>
+
+<file path="components/ui/dialog.tsx">
+import { X } from "lucide-react"
+⋮----
+import { cn } from "@/lib/utils"
+⋮----
+className=
+</file>
+
+<file path="components/ui/drawer.tsx">
+import { Drawer as DrawerPrimitive } from "vaul"
+⋮----
+import { cn } from "@/lib/utils"
+⋮----
+const Drawer = (
+⋮----
+className=
+</file>
+
+<file path="components/ui/dropdown-menu.tsx">
+import { Check, ChevronRight, Circle } from "lucide-react"
+⋮----
+import { cn } from "@/lib/utils"
+⋮----
+className=
+</file>
+
+<file path="components/ui/form.tsx">
+import { Slot } from "@radix-ui/react-slot"
+import {
+  Controller,
+  ControllerProps,
+  FieldPath,
+  FieldValues,
+  FormProvider,
+  useFormContext,
+} from "react-hook-form"
+⋮----
+import { cn } from "@/lib/utils"
+import { Label } from "@/components/ui/label"
+⋮----
+type FormFieldContextValue<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+> = {
+  name: TName
+}
+⋮----
+const FormField = <
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+>({
+  ...props
+}: ControllerProps<TFieldValues, TName>) =>
+⋮----
+const useFormField = () =>
+⋮----
+type FormItemContextValue = {
+  id: string
+}
+⋮----
+<div ref=
+⋮----
+className=
+</file>
+
+<file path="components/ui/hover-card.tsx">
+import { cn } from "@/lib/utils"
+</file>
+
+<file path="components/ui/icons.tsx">
+import { ChevronDown, ChevronUp } from "lucide-react"
+</file>
+
+<file path="components/ui/input-otp.tsx">
+import { OTPInput, OTPInputContext } from "input-otp"
+import { Dot } from "lucide-react"
+⋮----
+import { cn } from "@/lib/utils"
+⋮----
+containerClassName=
+className=
+⋮----
+<div ref=
+</file>
+
+<file path="components/ui/input.tsx">
+import { cn } from "@/lib/utils"
+⋮----
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
+⋮----
+className=
+</file>
+
+<file path="components/ui/label.tsx">
+import { cva, type VariantProps } from "class-variance-authority"
+⋮----
+import { cn } from "@/lib/utils"
+</file>
+
+<file path="components/ui/menubar.tsx">
+import { Check, ChevronRight, Circle } from "lucide-react"
+⋮----
+import { cn } from "@/lib/utils"
+⋮----
+className=
+</file>
+
+<file path="components/ui/navigation-menu.tsx">
+import { cva } from "class-variance-authority"
+import { ChevronDown } from "lucide-react"
+⋮----
+import { cn } from "@/lib/utils"
+⋮----
+className=
+</file>
+
+<file path="components/ui/pagination.tsx">
+import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
+⋮----
+import { cn } from "@/lib/utils"
+import { ButtonProps, buttonVariants } from "@/components/ui/button"
+⋮----
+const Pagination = (
+⋮----
+className=
+⋮----
+<li ref=
+⋮----
+const PaginationPrevious = (
+</file>
+
+<file path="components/ui/popover.tsx">
+import { cn } from "@/lib/utils"
+</file>
+
+<file path="components/ui/progress.tsx">
+import { cn } from "@/lib/utils"
+⋮----
+className=
+</file>
+
+<file path="components/ui/radio-group.tsx">
+import { Circle } from "lucide-react"
+⋮----
+import { cn } from "@/lib/utils"
+⋮----
+className=
+</file>
+
+<file path="components/ui/resizable.tsx">
+import type React from "react"
+⋮----
+import { GripVertical } from "lucide-react"
+⋮----
+import { cn } from "@/lib/utils"
+</file>
+
+<file path="components/ui/scroll-area.tsx">
+import { cn } from "@/lib/utils"
+⋮----
+<ScrollAreaPrimitive.Root ref=
+⋮----
+className=
+</file>
+
+<file path="components/ui/select.tsx">
+import { Check, ChevronDown, ChevronUp } from "lucide-react"
+⋮----
+import { cn } from "@/lib/utils"
+⋮----
+className=
+</file>
+
+<file path="components/ui/separator.tsx">
+import { cn } from "@/lib/utils"
+</file>
+
+<file path="components/ui/sheet.tsx">
+import { cva, type VariantProps } from "class-variance-authority"
+import { X } from "lucide-react"
+⋮----
+import { cn } from "@/lib/utils"
+⋮----
+interface SheetContentProps
+  extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
+    VariantProps<typeof sheetVariants> {}
+⋮----
+className=
+</file>
+
+<file path="components/ui/sidebar.tsx">
+import { Slot } from "@radix-ui/react-slot"
+import { VariantProps, cva } from "class-variance-authority"
+import { PanelLeft } from "lucide-react"
+⋮----
+import { useIsMobile } from "@/hooks/use-mobile"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
+import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+⋮----
+type SidebarContext = {
+  state: "expanded" | "collapsed"
+  open: boolean
+  setOpen: (open: boolean) => void
+  openMobile: boolean
+  setOpenMobile: (open: boolean) => void
+  isMobile: boolean
+  toggleSidebar: () => void
+}
+⋮----
+function useSidebar()
+⋮----
+// This is the internal state of the sidebar.
+// We use openProp and setOpenProp for control from outside the component.
+⋮----
+// This sets the cookie to keep the sidebar state.
+⋮----
+// Helper to toggle the sidebar.
+⋮----
+// Adds a keyboard shortcut to toggle the sidebar.
+⋮----
+const handleKeyDown = (event: KeyboardEvent) =>
+⋮----
+// We add a state so that we can do data-state="expanded" or "collapsed".
+// This makes it easier to style the sidebar with Tailwind classes.
+⋮----
+className=
+⋮----
+{/* This is what handles the sidebar gap on desktop */}
+⋮----
+// Adjust the padding for floating and inset variants.
+⋮----
+onClick?.(event)
+toggleSidebar()
+⋮----
+// Increases the hit area of the button on mobile.
+⋮----
+// Increases the hit area of the button on mobile.
+⋮----
+// Random width between 50 to 90%.
+</file>
+
+<file path="components/ui/skeleton.tsx">
+import { cn } from "@/lib/utils"
+⋮----
+className=
+</file>
+
+<file path="components/ui/slider.tsx">
+import { cn } from "@/lib/utils"
+⋮----
+className=
+</file>
+
+<file path="components/ui/sonner.tsx">
+import { useTheme } from "next-themes"
+import { Toaster as Sonner } from "sonner"
+⋮----
+type ToasterProps = React.ComponentProps<typeof Sonner>
+⋮----
+const Toaster = (
+</file>
+
+<file path="components/ui/switch.tsx">
+import { cn } from "@/lib/utils"
+⋮----
+className=
+</file>
+
+<file path="components/ui/table.tsx">
+import { cn } from "@/lib/utils"
+⋮----
+className=
+⋮----
+<thead ref=
+</file>
+
+<file path="components/ui/tabs.tsx">
+import { cn } from "@/lib/utils"
+</file>
+
+<file path="components/ui/textarea.tsx">
+import { cn } from "@/lib/utils"
+⋮----
+export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
+</file>
+
+<file path="components/ui/toast.tsx">
+import { cva, type VariantProps } from "class-variance-authority"
+import { X } from "lucide-react"
+⋮----
+import { cn } from "@/lib/utils"
+⋮----
+className=
+⋮----
+type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
+⋮----
+type ToastActionElement = React.ReactElement<typeof ToastAction>
+</file>
+
+<file path="components/ui/toaster.tsx">
+import { useToast } from "@/hooks/use-toast"
+import {
+  Toast,
+  ToastClose,
+  ToastDescription,
+  ToastProvider,
+  ToastTitle,
+  ToastViewport,
+} from "@/components/ui/toast"
+</file>
+
+<file path="components/ui/toggle-group.tsx">
+import { type VariantProps } from "class-variance-authority"
+⋮----
+import { cn } from "@/lib/utils"
+import { toggleVariants } from "@/components/ui/toggle"
+⋮----
+className=
+</file>
+
+<file path="components/ui/toggle.tsx">
+import { cva, type VariantProps } from "class-variance-authority"
+⋮----
+import { cn } from "@/lib/utils"
+</file>
+
+<file path="components/ui/tooltip.tsx">
+import { cn } from "@/lib/utils"
+</file>
+
+<file path="components/ui/use-mobile.tsx">
+export function useIsMobile()
+⋮----
+const onChange = () =>
+</file>
+
+<file path="components/ui/use-toast.ts">
+// Inspired by react-hot-toast library
+⋮----
+import type {
+  ToastActionElement,
+  ToastProps,
+} from "@/components/ui/toast"
+⋮----
+type ToasterToast = ToastProps & {
+  id: string
+  title?: React.ReactNode
+  description?: React.ReactNode
+  action?: ToastActionElement
+}
+⋮----
+function genId()
+⋮----
+type ActionType = typeof actionTypes
+⋮----
+type Action =
+  | {
+      type: ActionType["ADD_TOAST"]
+      toast: ToasterToast
+    }
+  | {
+      type: ActionType["UPDATE_TOAST"]
+      toast: Partial<ToasterToast>
+    }
+  | {
+      type: ActionType["DISMISS_TOAST"]
+      toastId?: ToasterToast["id"]
+    }
+  | {
+      type: ActionType["REMOVE_TOAST"]
+      toastId?: ToasterToast["id"]
+    }
+⋮----
+interface State {
+  toasts: ToasterToast[]
+}
+⋮----
+const addToRemoveQueue = (toastId: string) =>
+⋮----
+export const reducer = (state: State, action: Action): State =>
+⋮----
+// ! Side effects ! - This could be extracted into a dismissToast() action,
+// but I'll keep it here for simplicity
+⋮----
+function dispatch(action: Action)
+⋮----
+type Toast = Omit<ToasterToast, "id">
+⋮----
+function toast(
+⋮----
+const update = (props: ToasterToast)
+const dismiss = () => dispatch(
+⋮----
+function useToast()
+</file>
+
+<file path="components/code-viewer.tsx">
+import type React from "react"
+⋮----
+import { useEffect, useState, useRef } from "react"
+import { Loader2, Copy, Check, ChevronDown, Search, X, ChevronUp, ChevronRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
+⋮----
+interface CodeViewerProps {
+  filePath: string | null
+  searchTerm?: string
+  onSearchChange?: (term: string) => void
+}
+⋮----
+interface CodeLine {
+  number: number
+  content: string
+  isFoldable?: boolean
+  isFolded?: boolean
+  indentation: number
+  highlighted?: boolean
+  hidden?: boolean
+}
+⋮----
+// Update local search term when prop changes
+⋮----
+// Determine language based on file extension
+⋮----
+// Simulate fetching code content
+⋮----
+// Mock code content based on file path
+⋮----
+// Process code into lines with folding information
+⋮----
+// Handle search within file
+⋮----
+// We need to avoid updating codeLines if the highlighted state hasn't actually changed
+// This is likely causing the infinite loop
+⋮----
+// Scroll to first result if any
+⋮----
+const handleCopyCode = () =>
+⋮----
+const toggleFold = (lineIndex: number) =>
+⋮----
+// If folding, hide all lines with greater indentation until we reach a line with equal or less indentation
+⋮----
+// If unfolding, show all lines until we reach a line with equal or less indentation
+⋮----
+const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+⋮----
+const clearSearch = () =>
+⋮----
+const navigateSearch = (direction: "next" | "prev") =>
+⋮----
+// Scroll to the selected search result
+⋮----
+// Add this function to apply basic syntax highlighting
+const applyBasicSyntaxHighlighting = (content: string, language: string) =>
+⋮----
+// This is a very simplified version of syntax highlighting
+// In a real app, you'd want to use a proper tokenizer
+⋮----
+// Highlight keywords
+⋮----
+// Highlight strings
+⋮----
+// Highlight comments
+⋮----
+// Highlight numbers
+⋮----
+{/* In-file search */}
+⋮----
+{/* Line numbers */}
+⋮----
+{/* Code content */}
+⋮----
+// Apply basic syntax highlighting
+⋮----
+// Highlight search matches if any
+⋮----
+className=
+</file>
+
+<file path="components/dependency-details.tsx">
+import { useState, useEffect } from "react"
+import { FileCode, AlertCircle, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
+⋮----
+interface DependencyDetailsProps {
+  nodeName: string
+  onClose: () => void
+}
+⋮----
+interface Dependency {
+  id: string
+  type: string
+  path: string
+}
+⋮----
+// Generate mock data for the selected node
+⋮----
+// Generate mock dependencies
+⋮----
+// Generate 3-8 dependencies
+⋮----
+// Add some circular dependencies
+⋮----
+// Generate 2-6 dependents
+⋮----
+// Add some circular dependencies
+⋮----
+// Helper function to generate random names
+function getRandomName()
+⋮----
+</file>
+
+<file path="components/dependency-graph.tsx">
+import { useEffect, useRef, useState } from "react"
+⋮----
+import { Loader2 } from "lucide-react"
+⋮----
+interface DependencyGraphProps {
+  filePath: string
+  depthLevel: number
+  showIndirectDeps: boolean
+  zoomLevel: number
+  onNodeSelect: (nodeId: string) => void
+}
+⋮----
+interface Node {
+  id: string
+  group: number
+  type: string
+  level: number
+  isRoot?: boolean
+}
+⋮----
+interface Link {
+  source: string
+  target: string
+  value: number
+  type: string
+}
+⋮----
+interface GraphData {
+  nodes: Node[]
+  links: Link[]
+}
+⋮----
+export function DependencyGraph({
+  filePath,
+  depthLevel,
+  showIndirectDeps,
+  zoomLevel,
+  onNodeSelect,
+}: DependencyGraphProps)
+⋮----
+// Generate mock data for the graph based on the selected file
+⋮----
+// Simulate API call to get dependency data
+⋮----
+// Generate mock dependency graph for the selected file
+⋮----
+// Add the root node (selected file)
+⋮----
+// Generate dependencies (files that the selected file imports)
+⋮----
+// Add dependency nodes and links
+⋮----
+// Add indirect dependencies if enabled
+⋮----
+// Generate dependents (files that import the selected file)
+⋮----
+// Add dependent nodes and links
+⋮----
+// Add indirect dependents if enabled
+⋮----
+// Render the graph
+⋮----
+// Clear previous graph
+⋮----
+// Set up the SVG
+⋮----
+// Create a group for zoom/pan
+⋮----
+// Add zoom behavior
+⋮----
+// Set initial zoom level
+⋮----
+// Create the simulation
+⋮----
+// Define color scale for node groups
+⋮----
+// Create links
+⋮----
+// Create nodes
+⋮----
+// Add tooltips
+⋮----
+// Add labels
+⋮----
+// Update node and link positions on simulation tick
+⋮----
+// Drag function for nodes
+function drag(simulation: any)
+⋮----
+function dragstarted(event: any)
+⋮----
+function dragged(event: any)
+⋮----
+function dragended(event: any)
+⋮----
+// Add legend
+⋮----
+// Helper function to get file type from path
+function getFileType(path: string): string
+⋮----
+// Helper function to generate mock dependencies
+function generateMockDependencies(filePath: string, maxDepth: number): any[]
+⋮----
+// Mock data based on file path
+⋮----
+// Add indirect dependencies if depth > 1
+⋮----
+// Generate random dependencies for other files
+⋮----
+// Helper function to generate mock dependents
+function generateMockDependents(filePath: string, maxDepth: number): any[]
+⋮----
+// Mock data based on file path
+⋮----
+// Add indirect dependents if depth > 1
+⋮----
+// Generate random dependents for other files
+</file>
+
+<file path="components/dependency-list.tsx">
+import { useState, useEffect } from "react"
+import { ChevronRight, FileCode, FolderOpen, AlertCircle, Info } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
+⋮----
+interface DependencyListProps {
+  searchQuery: string
+  dependencyType: string
+  onNodeSelect: (nodeId: string | null) => void
+  selectedNode: string | null
+}
+⋮----
+interface FileNode {
+  id: string
+  type: string
+  dependencies: string[]
+  dependents: string[]
+  hasCircular: boolean
+  isUnused: boolean
+}
+⋮----
+// Generate mock data
+⋮----
+// Generate 100 mock files with dependencies
+⋮----
+// Add dependencies and dependents
+⋮----
+// Create folder structure
+⋮----
+// Expand the first level folders by default
+⋮----
+// Filter files based on search query and dependency type
+⋮----
+// Apply search filter
+⋮----
+// Apply dependency type filter
+⋮----
+// Toggle folder expansion
+const toggleFolder = (folder: string) =>
+⋮----
+// Render folder structure recursively
+⋮----
+// Check if it's a file or folder
+⋮----
+// It's a file
+⋮----
+// Check if file matches filters
+⋮----
+className=
+⋮----
+// Helper function to check if a folder has any matching children recursively
+⋮----
+// Helper function to generate random names
+</file>
+
+<file path="components/feature-card.tsx">
+import Link from "next/link"
+import { Calendar, Clock, GitPullRequest, Tag, Users } from "lucide-react"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+⋮----
+interface FeatureCardProps {
+  feature: {
+    id: string
+    title: string
+    description: string
+    status: string
+    type: string
+    createdAt: string
+    completedAt: string | null
+    author: string
+    contributors: string[]
+    tags: string[]
+    prLink: string | null
+  }
+}
+⋮----
+// Format date to be more readable
+const formatDate = (dateString: string) =>
+⋮----
+// Get status badge color
+const getStatusColor = (status: string) =>
+⋮----
+<span>Created:
+⋮----
+<span>Completed:
+</file>
+
+<file path="components/file-explorer.tsx">
+import { useState } from "react"
+import { ChevronDown, ChevronRight, File, FileCode, FileText, Folder, FolderOpen } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import React from "react"
+⋮----
+interface FileNode {
+  name: string
+  type: "file" | "directory"
+  path?: string
+  children?: FileNode[]
+}
+⋮----
+interface FileExplorerProps {
+  files: FileNode[]
+  onSelectFile: (path: string | null) => void
+  selectedFile: string | null
+}
+⋮----
+// Memoize the file icon to prevent unnecessary re-renders
+</file>
+
+<file path="components/markdown-editor.tsx">
+import { useState } from "react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+⋮----
+interface MarkdownEditorProps {
+  value: string
+  onChange: (value: string) => void
+  readOnly?: boolean
+}
+⋮----
+onChange=
+⋮----
+// Very basic markdown rendering for demonstration
+⋮----
+
+⋮----
+<span>
+</file>
+
+<file path="components/repo-summary.tsx">
+interface RepoSummaryProps {
+  summary: string
+}
+⋮----
+export function RepoSummary(
+</file>
+
+<file path="components/repository-insights.tsx">
+import { useEffect, useRef } from "react"
+⋮----
+interface RepositoryInsightsProps {
+  type: "feature-completion" | "contributor-activity" | "code-changes"
+}
+⋮----
+export function RepositoryInsights(
+⋮----
+// In a real application, we would use a charting library like Chart.js or Recharts
+// For this example, we'll just show a placeholder
+⋮----
+// Draw placeholder chart based on type
+⋮----
+// Placeholder chart drawing functions
+const drawFeatureCompletionChart = (ctx: CanvasRenderingContext2D, width: number, height: number) =>
+⋮----
+// Draw a simple line chart
+⋮----
+// Add gradient fill
+⋮----
+const drawContributorActivityChart = (ctx: CanvasRenderingContext2D, width: number, height: number) =>
+⋮----
+// Draw a simple bar chart
+⋮----
+// Draw bar
+⋮----
+// Draw label
+⋮----
+const drawCodeChangesChart = (ctx: CanvasRenderingContext2D, width: number, height: number) =>
+⋮----
+// Draw a simple area chart
+⋮----
+// Draw added lines
+⋮----
+// Draw removed lines
+⋮----
+// Add legend
+</file>
+
+<file path="components/repository-timeline.tsx">
+import { GitCommit, GitPullRequest, Tag } from "lucide-react"
+import { cn } from "@/lib/utils"
+⋮----
+interface TimelineItem {
+  id: string
+  type: "commit" | "pull-request" | "release"
+  title: string
+  description: string
+  author: string
+  date: string
+  hash?: string
+  branch?: string
+  status?: string
+  number?: number
+  tag?: string
+}
+⋮----
+interface RepositoryTimelineProps {
+  items: TimelineItem[]
+}
+⋮----
+// Sort items by date (newest first)
+⋮----
+// Format date to be more readable
+const formatDate = (dateString: string) =>
+⋮----
+// Get icon for timeline item type
+const getItemIcon = (type: string) =>
+⋮----
+// Get badge color for PR status
+const getPrStatusColor = (status: string) =>
+⋮----
+{/* Timeline line */}
+⋮----
+{/* Timeline items */}
+⋮----
+{/* Timeline icon */}
+⋮----
+
+⋮----
+{/* Timeline content */}
+</file>
+
+<file path="components/search-results.tsx">
+import { File, Folder, Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { ScrollArea } from "@/components/ui/scroll-area"
+⋮----
+interface SearchResultsProps {
+  results: any[]
+  isSearching: boolean
+  query: string
+  onSelectFile: (path: string | null) => void
+  selectedFile: string | null
+}
+⋮----
+// Memoize the click handler to prevent unnecessary re-renders
+const handleFileClick = (path: string) =>
+⋮----
+className=
+</file>
+
+<file path="components/spec-conversation.tsx">
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+⋮----
+interface ConversationMessage {
+  id: string
+  type: "question" | "answer"
+  author: string
+  content: string
+  timestamp: string
+}
+⋮----
+interface SpecConversationProps {
+  conversation: ConversationMessage[]
+}
+⋮----
+// Format date to be more readable
+const formatDate = (dateString: string) =>
+⋮----
+// Get initials for avatar
+const getInitials = (name: string) =>
+⋮----
+// Get avatar color based on author
+const getAvatarColor = (author: string) =>
+⋮----
+// Generate a consistent color based on the author's name
+</file>
+
+<file path="components/spec-editor.tsx">
+import { Textarea } from "@/components/ui/textarea"
+⋮----
+interface SpecEditorProps {
+  content: string
+  onChange: (content: string) => void
+}
+⋮----
+export function SpecEditor(
+</file>
+
+<file path="components/spec-version-diff.tsx">
+import { ScrollArea } from "@/components/ui/scroll-area"
+⋮----
+interface DiffSegment {
+  type: "added" | "removed" | "unchanged"
+  content: string
+}
+⋮----
+interface Version {
+  id: string
+  name: string
+  date: string
+  author: string
+  type: string
+  content: string
+  diff?: DiffSegment[]
+}
+⋮----
+interface SpecVersionDiffProps {
+  baseVersion?: Version
+  compareVersion?: Version
+}
+⋮----
+// If we have a pre-computed diff, use it
+⋮----
+// Otherwise, do a simple line-by-line comparison
+⋮----
+// Simple diff algorithm - not as sophisticated as real diff tools
+⋮----
+// Find added and unchanged lines
+⋮----
+// Find removed lines
+⋮----
+// Insert removed lines in appropriate position (simplified)
+⋮----
+// Sort by original order (simplified)
+</file>
+
+<file path="components/spec-version-selector.tsx">
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+⋮----
+interface Version {
+  id: string
+  name: string
+  date: string
+  author: string
+  type: string
+}
+⋮----
+interface SpecVersionSelectorProps {
+  versions: Version[]
+  selectedVersion: string
+  onChange: (version: string) => void
+  includeEmpty?: boolean
+}
+⋮----
+export function SpecVersionSelector({
+  versions,
+  selectedVersion,
+  onChange,
+  includeEmpty = false,
+}: SpecVersionSelectorProps)
+</file>
+
+<file path="components/stepper.tsx">
+import React from "react"
+⋮----
+import { Check } from "lucide-react"
+import { cn } from "@/lib/utils"
+⋮----
+interface StepperProps {
+  currentStep: number
+  className?: string
+  children: React.ReactNode
+}
+⋮----
+interface StepProps {
+  title: string
+  description?: string
+}
+⋮----
+// Context for the stepper
+</file>
+
+<file path="components/template-card.tsx">
+import Link from "next/link"
+import { Calendar, Star, Users } from "lucide-react"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+⋮----
+interface TemplateCardProps {
+  template: {
+    id: string
+    name: string
+    description: string
+    category: string
+    tags: string[]
+    author: string
+    updatedAt: string
+    usageCount: number
+    isFavorite?: boolean
+  }
+}
+</file>
+
+<file path="components/theme-provider.tsx">
+import { ThemeProvider as NextThemesProvider } from "next-themes"
+import type { ThemeProviderProps } from "next-themes"
+⋮----
+export function ThemeProvider(
+</file>
+
+<file path="components/theme-toggle.tsx">
+import { useTheme } from "next-themes"
+import { Button } from "@/components/ui/button"
+import { Moon, Sun } from "lucide-react"
+import { useEffect, useState } from "react"
+⋮----
+export function ThemeToggle()
+⋮----
+// Ensure component is mounted to avoid hydration mismatch
+</file>
+
+<file path="hooks/use-mobile.tsx">
+export function useIsMobile()
+⋮----
+const onChange = () =>
+</file>
+
+<file path="hooks/use-toast.ts">
+// Inspired by react-hot-toast library
+⋮----
+import type {
+  ToastActionElement,
+  ToastProps,
+} from "@/components/ui/toast"
+⋮----
+type ToasterToast = ToastProps & {
+  id: string
+  title?: React.ReactNode
+  description?: React.ReactNode
+  action?: ToastActionElement
+}
+⋮----
+function genId()
+⋮----
+type ActionType = typeof actionTypes
+⋮----
+type Action =
+  | {
+      type: ActionType["ADD_TOAST"]
+      toast: ToasterToast
+    }
+  | {
+      type: ActionType["UPDATE_TOAST"]
+      toast: Partial<ToasterToast>
+    }
+  | {
+      type: ActionType["DISMISS_TOAST"]
+      toastId?: ToasterToast["id"]
+    }
+  | {
+      type: ActionType["REMOVE_TOAST"]
+      toastId?: ToasterToast["id"]
+    }
+⋮----
+interface State {
+  toasts: ToasterToast[]
+}
+⋮----
+const addToRemoveQueue = (toastId: string) =>
+⋮----
+export const reducer = (state: State, action: Action): State =>
+⋮----
+// ! Side effects ! - This could be extracted into a dismissToast() action,
+// but I'll keep it here for simplicity
+⋮----
+function dispatch(action: Action)
+⋮----
+type Toast = Omit<ToasterToast, "id">
+⋮----
+function toast(
+⋮----
+const update = (props: ToasterToast)
+const dismiss = () => dispatch(
+⋮----
+function useToast()
+</file>
+
+<file path="lib/template-data.ts">
+
+</file>
+
+<file path="lib/utils.ts">
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+⋮----
+export function cn(...inputs: ClassValue[])
+</file>
+
+<file path="public/placeholder-logo.svg">
+<svg xmlns="http://www.w3.org/2000/svg" width="215" height="48" fill="none"><path fill="#000" d="M57.588 9.6h6L73.828 38h-5.2l-2.36-6.88h-11.36L52.548 38h-5.2l10.24-28.4Zm7.16 17.16-4.16-12.16-4.16 12.16h8.32Zm23.694-2.24c-.186-1.307-.706-2.32-1.56-3.04-.853-.72-1.866-1.08-3.04-1.08-1.68 0-2.986.613-3.92 1.84-.906 1.227-1.36 2.947-1.36 5.16s.454 3.933 1.36 5.16c.934 1.227 2.24 1.84 3.92 1.84 1.254 0 2.307-.373 3.16-1.12.854-.773 1.387-1.867 1.6-3.28l5.12.24c-.186 1.68-.733 3.147-1.64 4.4-.906 1.227-2.08 2.173-3.52 2.84-1.413.667-2.986 1-4.72 1-2.08 0-3.906-.453-5.48-1.36-1.546-.907-2.76-2.2-3.64-3.88-.853-1.68-1.28-3.627-1.28-5.84 0-2.24.427-4.187 1.28-5.84.88-1.68 2.094-2.973 3.64-3.88 1.574-.907 3.4-1.36 5.48-1.36 1.68 0 3.227.32 4.64.96 1.414.64 2.56 1.56 3.44 2.76.907 1.2 1.454 2.6 1.64 4.2l-5.12.28Zm11.486-7.72.12 3.4c.534-1.227 1.307-2.173 2.32-2.84 1.04-.693 2.267-1.04 3.68-1.04 1.494 0 2.76.387 3.8 1.16 1.067.747 1.827 1.813 2.28 3.2.507-1.44 1.294-2.52 2.36-3.24 1.094-.747 2.414-1.12 3.96-1.12 1.414 0 2.64.307 3.68.92s1.84 1.52 2.4 2.72c.56 1.2.84 2.667.84 4.4V38h-4.96V25.92c0-1.813-.293-3.187-.88-4.12-.56-.96-1.413-1.44-2.56-1.44-.906 0-1.68.213-2.32.64-.64.427-1.133 1.053-1.48 1.88-.32.827-.48 1.84-.48 3.04V38h-4.56V25.92c0-1.2-.133-2.213-.4-3.04-.24-.827-.626-1.453-1.16-1.88-.506-.427-1.133-.64-1.88-.64-.906 0-1.68.227-2.32.68-.64.427-1.133 1.053-1.48 1.88-.32.827-.48 1.827-.48 3V38h-4.96V16.8h4.48Zm26.723 10.6c0-2.24.427-4.187 1.28-5.84.854-1.68 2.067-2.973 3.64-3.88 1.574-.907 3.4-1.36 5.48-1.36 1.84 0 3.494.413 4.96 1.24 1.467.827 2.64 2.08 3.52 3.76.88 1.653 1.347 3.693 1.4 6.12v1.32h-15.08c.107 1.813.614 3.227 1.52 4.24.907.987 2.134 1.48 3.68 1.48.987 0 1.88-.253 2.68-.76a4.803 4.803 0 0 0 1.84-2.2l5.08.36c-.64 2.027-1.84 3.64-3.6 4.84-1.733 1.173-3.733 1.76-6 1.76-2.08 0-3.906-.453-5.48-1.36-1.573-.907-2.786-2.2-3.64-3.88-.853-1.68-1.28-3.627-1.28-5.84Zm15.16-2.04c-.213-1.733-.76-3.013-1.64-3.84-.853-.827-1.893-1.24-3.12-1.24-1.44 0-2.6.453-3.48 1.36-.88.88-1.44 2.12-1.68 3.72h9.92ZM163.139 9.6V38h-5.04V9.6h5.04Zm8.322 7.2.24 5.88-.64-.36c.32-2.053 1.094-3.56 2.32-4.52 1.254-.987 2.787-1.48 4.6-1.48 2.32 0 4.107.733 5.36 2.2 1.254 1.44 1.88 3.387 1.88 5.84V38h-4.96V25.92c0-1.253-.12-2.28-.36-3.08-.24-.8-.64-1.413-1.2-1.84-.533-.427-1.253-.64-2.16-.64-1.44 0-2.573.48-3.4 1.44-.8.933-1.2 2.307-1.2 4.12V38h-4.96V16.8h4.48Zm30.003 7.72c-.186-1.307-.706-2.32-1.56-3.04-.853-.72-1.866-1.08-3.04-1.08-1.68 0-2.986.613-3.92 1.84-.906 1.227-1.36 2.947-1.36 5.16s.454 3.933 1.36 5.16c.934 1.227 2.24 1.84 3.92 1.84 1.254 0 2.307-.373 3.16-1.12.854-.773 1.387-1.867 1.6-3.28l5.12.24c-.186 1.68-.733 3.147-1.64 4.4-.906 1.227-2.08 2.173-3.52 2.84-1.413.667-2.986 1-4.72 1-2.08 0-3.906-.453-5.48-1.36-1.546-.907-2.76-2.2-3.64-3.88-.853-1.68-1.28-3.627-1.28-5.84 0-2.24.427-4.187 1.28-5.84.88-1.68 2.094-2.973 3.64-3.88 1.574-.907 3.4-1.36 5.48-1.36 1.68 0 3.227.32 4.64.96 1.414.64 2.56 1.56 3.44 2.76.907 1.2 1.454 2.6 1.64 4.2l-5.12.28Zm11.443 8.16V38h-5.6v-5.32h5.6Z"/><path fill="#171717" fill-rule="evenodd" d="m7.839 40.783 16.03-28.054L20 6 0 40.783h7.839Zm8.214 0H40L27.99 19.894l-4.02 7.032 3.976 6.914H20.02l-3.967 6.943Z" clip-rule="evenodd"/></svg>
+</file>
+
+<file path="public/placeholder.svg">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" fill="none"><rect width="1200" height="1200" fill="#EAEAEA" rx="3"/><g opacity=".5"><g opacity=".5"><path fill="#FAFAFA" d="M600.709 736.5c-75.454 0-136.621-61.167-136.621-136.62 0-75.454 61.167-136.621 136.621-136.621 75.453 0 136.62 61.167 136.62 136.621 0 75.453-61.167 136.62-136.62 136.62Z"/><path stroke="#C9C9C9" stroke-width="2.418" d="M600.709 736.5c-75.454 0-136.621-61.167-136.621-136.62 0-75.454 61.167-136.621 136.621-136.621 75.453 0 136.62 61.167 136.62 136.621 0 75.453-61.167 136.62-136.62 136.62Z"/></g><path stroke="url(#a)" stroke-width="2.418" d="M0-1.209h553.581" transform="scale(1 -1) rotate(45 1163.11 91.165)"/><path stroke="url(#b)" stroke-width="2.418" d="M404.846 598.671h391.726"/><path stroke="url(#c)" stroke-width="2.418" d="M599.5 795.742V404.017"/><path stroke="url(#d)" stroke-width="2.418" d="m795.717 796.597-391.441-391.44"/><path fill="#fff" d="M600.709 656.704c-31.384 0-56.825-25.441-56.825-56.824 0-31.384 25.441-56.825 56.825-56.825 31.383 0 56.824 25.441 56.824 56.825 0 31.383-25.441 56.824-56.824 56.824Z"/><g clip-path="url(#e)"><path fill="#666" fill-rule="evenodd" d="M616.426 586.58h-31.434v16.176l3.553-3.554.531-.531h9.068l.074-.074 8.463-8.463h2.565l7.18 7.181V586.58Zm-15.715 14.654 3.698 3.699 1.283 1.282-2.565 2.565-1.282-1.283-5.2-5.199h-6.066l-5.514 5.514-.073.073v2.876a2.418 2.418 0 0 0 2.418 2.418h26.598a2.418 2.418 0 0 0 2.418-2.418v-8.317l-8.463-8.463-7.181 7.181-.071.072Zm-19.347 5.442v4.085a6.045 6.045 0 0 0 6.046 6.045h26.598a6.044 6.044 0 0 0 6.045-6.045v-7.108l1.356-1.355-1.282-1.283-.074-.073v-17.989h-38.689v23.43l-.146.146.146.147Z" clip-rule="evenodd"/></g><path stroke="#C9C9C9" stroke-width="2.418" d="M600.709 656.704c-31.384 0-56.825-25.441-56.825-56.824 0-31.384 25.441-56.825 56.825-56.825 31.383 0 56.824 25.441 56.824 56.825 0 31.383-25.441 56.824-56.824 56.824Z"/></g><defs><linearGradient id="a" x1="554.061" x2="-.48" y1=".083" y2=".087" gradientUnits="userSpaceOnUse"><stop stop-color="#C9C9C9" stop-opacity="0"/><stop offset=".208" stop-color="#C9C9C9"/><stop offset=".792" stop-color="#C9C9C9"/><stop offset="1" stop-color="#C9C9C9" stop-opacity="0"/></linearGradient><linearGradient id="b" x1="796.912" x2="404.507" y1="599.963" y2="599.965" gradientUnits="userSpaceOnUse"><stop stop-color="#C9C9C9" stop-opacity="0"/><stop offset=".208" stop-color="#C9C9C9"/><stop offset=".792" stop-color="#C9C9C9"/><stop offset="1" stop-color="#C9C9C9" stop-opacity="0"/></linearGradient><linearGradient id="c" x1="600.792" x2="600.794" y1="403.677" y2="796.082" gradientUnits="userSpaceOnUse"><stop stop-color="#C9C9C9" stop-opacity="0"/><stop offset=".208" stop-color="#C9C9C9"/><stop offset=".792" stop-color="#C9C9C9"/><stop offset="1" stop-color="#C9C9C9" stop-opacity="0"/></linearGradient><linearGradient id="d" x1="404.85" x2="796.972" y1="403.903" y2="796.02" gradientUnits="userSpaceOnUse"><stop stop-color="#C9C9C9" stop-opacity="0"/><stop offset=".208" stop-color="#C9C9C9"/><stop offset=".792" stop-color="#C9C9C9"/><stop offset="1" stop-color="#C9C9C9" stop-opacity="0"/></linearGradient><clipPath id="e"><path fill="#fff" d="M581.364 580.535h38.689v38.689h-38.689z"/></clipPath></defs></svg>
+</file>
+
+<file path="styles/globals.css">
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+⋮----
+body {
+⋮----
+@layer utilities {
+⋮----
+.text-balance {
+⋮----
+@layer base {
+⋮----
+:root {
+.dark {
+⋮----
+* {
+⋮----
+@apply border-border;
+</file>
+
+<file path=".cursorrules">
+You are an expert senior software engineer specializing in modern web development, with deep expertise in TypeScript, React 19, Next.js 15 (App Router), Vercel AI SDK, Shadcn UI, Radix UI, and Tailwind CSS. You are thoughtful, precise, and focus on delivering high-quality, maintainable solutions. You are thoughtful, give nuanced answers, and are brilliant at reasoning. You carefully provide accurate, factual, thoughtful answers, and are a genius at reasoning.
+
+Be concise. Minimize any other prose.
+
+If you think there might not be a correct answer, you say so. If you do not know the answer, say so instead of guessing.
+
+## Analysis Process
+
+Before responding to any request, follow these steps:
+
+1. Request Analysis
+   - Follow the user’s requirements carefully & to the letter.
+   - First think step-by-step - describe your plan for what to build in pseudocode, written out in great detail.
+   - Determine task type (code creation, debugging, architecture, etc.)
+   - Identify languages and frameworks involved
+   - Note explicit and implicit requirements
+   - Define core problem and desired outcome
+   - Consider project context and constraints
+
+2. Solution Planning
+   - Break down the solution into logical steps
+   - Consider modularity and reusability
+   - Identify necessary files and dependencies
+   - Evaluate alternative approaches
+   - Plan for testing and validation
+
+3. Implementation Strategy
+   - Choose appropriate design patterns
+   - Always write correct, up to date, bug free, fully functional and working, secure, performant and efficient code.
+   - Leave NO todo’s, placeholders or missing pieces.
+   - Consider performance implications
+   - Plan for error handling and edge cases
+   - Ensure accessibility compliance
+   - Verify best practices alignment
+
+## Code Style and Structure
+
+### General Principles
+
+- Write concise, readable TypeScript code
+- Use functional and declarative programming patterns
+- Follow DRY (Don't Repeat Yourself) principle
+- Implement early returns for better readability
+- Structure components logically: exports, subcomponents, helpers, types
+
+### Naming Conventions
+
+- Use descriptive names with auxiliary verbs (isLoading, hasError)
+- Prefix event handlers with "handle" (handleClick, handleSubmit)
+- Use lowercase with dashes for directories (components/auth-wizard)
+- Favor named exports for components
+
+### TypeScript Usage
+
+- Use TypeScript for all code
+- Prefer interfaces over types
+- Avoid enums; use const maps instead
+- Implement proper type safety and inference
+- Use `satisfies` operator for type validation
+
+## React 19 and Next.js 15 Best Practices
+
+### Component Architecture
+
+- Favor React Server Components (RSC) where possible
+- Minimize 'use client' directives
+- Implement proper error boundaries
+- Use Suspense for async operations
+- Optimize for performance and Web Vitals
+
+### State Management
+
+- Use `useActionState` instead of deprecated `useFormState`
+- Leverage enhanced `useFormStatus` with new properties (data, method, action)
+- Implement URL state management with 'nuqs'
+- Minimize client-side state
+</file>
+
+<file path="components.json">
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "default",
+  "rsc": true,
+  "tsx": true,
+  "tailwind": {
+    "config": "tailwind.config.ts",
+    "css": "app/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils",
+    "ui": "@/components/ui",
+    "lib": "@/lib",
+    "hooks": "@/hooks"
+  },
+  "iconLibrary": "lucide"
+}
+</file>
+
+<file path="next-env.d.ts">
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+⋮----
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+</file>
+
+<file path="next.config.mjs">
+/** @type {import('next').NextConfig} */
+</file>
+
+<file path="package.json">
+{
+  "name": "my-v0-project",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.9.1",
+    "@radix-ui/react-accordion": "^1.2.2",
+    "@radix-ui/react-alert-dialog": "^1.1.4",
+    "@radix-ui/react-aspect-ratio": "^1.1.1",
+    "@radix-ui/react-avatar": "latest",
+    "@radix-ui/react-checkbox": "^1.1.3",
+    "@radix-ui/react-collapsible": "latest",
+    "@radix-ui/react-context-menu": "^2.2.4",
+    "@radix-ui/react-dialog": "latest",
+    "@radix-ui/react-dropdown-menu": "latest",
+    "@radix-ui/react-hover-card": "^1.1.4",
+    "@radix-ui/react-label": "^2.1.1",
+    "@radix-ui/react-menubar": "^1.1.4",
+    "@radix-ui/react-navigation-menu": "^1.2.3",
+    "@radix-ui/react-popover": "^1.1.4",
+    "@radix-ui/react-progress": "^1.1.1",
+    "@radix-ui/react-radio-group": "^1.2.2",
+    "@radix-ui/react-scroll-area": "latest",
+    "@radix-ui/react-select": "^2.1.4",
+    "@radix-ui/react-separator": "latest",
+    "@radix-ui/react-slider": "latest",
+    "@radix-ui/react-slot": "^1.1.1",
+    "@radix-ui/react-switch": "latest",
+    "@radix-ui/react-tabs": "^1.1.2",
+    "@radix-ui/react-toast": "^1.2.4",
+    "@radix-ui/react-toggle": "^1.1.1",
+    "@radix-ui/react-toggle-group": "^1.1.1",
+    "@radix-ui/react-tooltip": "latest",
+    "autoprefixer": "^10.4.20",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "1.0.4",
+    "date-fns": "4.1.0",
+    "embla-carousel-react": "8.5.1",
+    "input-otp": "1.4.1",
+    "lucide-react": "^0.454.0",
+    "next": "15.2.4",
+    "next-themes": "latest",
+    "react": "^19",
+    "react-day-picker": "8.10.1",
+    "react-dom": "^19",
+    "react-hook-form": "^7.54.1",
+    "react-resizable-panels": "latest",
+    "recharts": "2.15.0",
+    "sonner": "^1.7.1",
+    "tailwind-merge": "^2.5.5",
+    "tailwindcss-animate": "^1.0.7",
+    "vaul": "^0.9.6",
+    "zod": "^3.24.1",
+    "ai": "latest",
+    "@ai-sdk/openai": "latest",
+    "d3": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5"
+  }
+}
+</file>
+
+<file path="postcss.config.mjs">
+/** @type {import('postcss-load-config').Config} */
+</file>
+
+<file path="tailwind.config.ts">
+import type { Config } from "tailwindcss"
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "target": "ES6",
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+</file>
+
+</files>

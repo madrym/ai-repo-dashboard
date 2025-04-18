@@ -1,9 +1,9 @@
 "use client"
 
 import { useEffect } from "react"
-
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   ArrowLeft,
   Code,
@@ -21,6 +21,7 @@ import {
   Shield,
   Server,
   Workflow,
+  FileCode,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -34,8 +35,10 @@ import { SearchResults } from "@/components/search-results"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { RepositoryInfo } from "@/components/repository-info"
+import { useRepository } from "@/lib/github/context"
 
-// Enhanced mock data
+// Enhanced mock data - keep this for non-connected repositories or fallback
 const repoData = {
   name: "example-repo",
   description: "A sample repository for demonstration",
@@ -112,7 +115,17 @@ const repoData = {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const { 
+    currentRepository, 
+    repositories, 
+    getRepositoryData, 
+    getRepositoryFiles, 
+    getRepositoryFileContent,
+    getRepositoryDetailedStats 
+  } = useRepository()
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
+  const [selectedFileContent, setSelectedFileContent] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<"code" | "docs">("code")
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearching, setIsSearching] = useState(false)
@@ -120,6 +133,60 @@ export default function DashboardPage() {
   const [inFileSearch, setInFileSearch] = useState("")
   const [language, setLanguage] = useState("text")
   const [infoTab, setInfoTab] = useState<"overview" | "cicd" | "tools" | "pr">("overview")
+  const [fileStructure, setFileStructure] = useState<any[]>([])
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false)
+  const [isLoadingContent, setIsLoadingContent] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Check if user is authenticated
+  useEffect(() => {
+    if (!currentRepository) {
+      router.push("/auth")
+    }
+  }, [currentRepository, router])
+
+  // Get current repository data
+  const repositoryData = currentRepository ? getRepositoryData(currentRepository) : null
+
+  // Load repository file structure
+  useEffect(() => {
+    if (currentRepository) {
+      setIsLoadingFiles(true)
+      setError(null)
+      
+      // Use cached file structure if available
+      if (repositoryData?.fileStructure) {
+        setFileStructure(repositoryData.fileStructure)
+        setIsLoadingFiles(false)
+        return
+      }
+      
+      // Otherwise fetch from API
+      getRepositoryFiles(currentRepository)
+        .then(files => {
+          setFileStructure(files)
+        })
+        .catch(err => {
+          console.error('Error loading file structure:', err)
+          setError('Failed to load repository files')
+        })
+        .finally(() => {
+          setIsLoadingFiles(false)
+        })
+    }
+  }, [currentRepository, repositoryData, getRepositoryFiles])
+  
+  // Load repository statistics
+  useEffect(() => {
+    if (currentRepository) {
+      // Only load if not already loaded
+      if (!repositoryData?.pullRequests && !repositoryData?.commitActivity) {
+        getRepositoryDetailedStats(currentRepository).catch(err => {
+          console.error('Error loading repository statistics:', err)
+        })
+      }
+    }
+  }, [currentRepository, repositoryData, getRepositoryDetailedStats])
 
   // Handle file search
   useEffect(() => {
@@ -134,13 +201,13 @@ export default function DashboardPage() {
     // Simulate search delay
     const timer = setTimeout(() => {
       // Search through file structure
-      const results = searchFiles(repoData.structure, searchQuery.toLowerCase())
+      const results = searchFiles(fileStructure, searchQuery.toLowerCase())
       setSearchResults(results)
       setIsSearching(false)
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [searchQuery])
+  }, [searchQuery, fileStructure])
 
   // Recursive function to search through file structure
   const searchFiles = (files: any[], query: string): any[] => {
@@ -162,10 +229,26 @@ export default function DashboardPage() {
     return results
   }
 
-  const handleFileSelect = (path: string | null) => {
+  const handleFileSelect = async (path: string | null) => {
     setSelectedFile(path)
+    setSelectedFileContent(null)
     // Clear in-file search when selecting a new file
     setInFileSearch("")
+    
+    if (path && currentRepository) {
+      setIsLoadingContent(true)
+      setError(null)
+      
+      try {
+        const content = await getRepositoryFileContent(currentRepository, path)
+        setSelectedFileContent(content)
+      } catch (err) {
+        console.error('Error loading file content:', err)
+        setError('Failed to load file content')
+      } finally {
+        setIsLoadingContent(false)
+      }
+    }
   }
 
   const clearSearch = () => {
@@ -217,8 +300,27 @@ export default function DashboardPage() {
     }
   }
 
+  // If no repository is connected, show loading or redirect
+  if (!repositoryData) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Card className="w-96">
+          <CardHeader>
+            <CardTitle>No Repository Connected</CardTitle>
+            <CardDescription>Connect a repository to continue</CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <Button asChild>
+              <Link href="/auth">Connect Repository</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
-    <div className="container py-6">
+    <div className="flex h-screen flex-col overflow-hidden">
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" asChild>
@@ -226,7 +328,7 @@ export default function DashboardPage() {
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold">{repoData.name}</h1>
+          <h1 className="text-2xl font-bold">{repositoryData.repository.name}</h1>
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -250,342 +352,180 @@ export default function DashboardPage() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <circle cx="18" cy="5" r="3" />
-                <circle cx="6" cy="12" r="3" />
-                <circle cx="18" cy="19" r="3" />
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                <path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2" />
+                <path d="m6 17 3.13-5.78c.53-.97 1.53-1.58 2.61-1.79 1.08-.21 2.21.08 3.13.8L18 13.97" />
+                <path d="m9 12 3.13-5.78C12.66 5.22 13.66 4.6 14.74 4.4c1.08-.21 2.21.08 3.13.8L22 9.03" />
               </svg>
-              Dependency Graph
+              Dependencies
             </Link>
-          </Button>
-          <Button asChild>
-            <Link href="/planner">Plan New Feature</Link>
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className="md:col-span-1">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Info className="h-5 w-5" />
-              Repository Info
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Tabs value={infoTab} onValueChange={(value) => setInfoTab(value as any)} className="w-full">
-              <TabsList className="w-full rounded-none border-b">
-                <TabsTrigger value="overview" className="flex-1">
-                  Overview
-                </TabsTrigger>
-                <TabsTrigger value="cicd" className="flex-1">
-                  CI/CD
-                </TabsTrigger>
-                <TabsTrigger value="tools" className="flex-1">
-                  Tools
-                </TabsTrigger>
-                <TabsTrigger value="pr" className="flex-1">
-                  PR
-                </TabsTrigger>
-              </TabsList>
-
-              {/* Overview Tab */}
-              <TabsContent value="overview">
-                <div className="space-y-4 pt-4">
-                  <div>
-                    <h3 className="flex items-center gap-2 font-medium">
-                      <Languages className="h-4 w-4 text-muted-foreground" />
-                      Languages & Versions
-                    </h3>
-                    <div className="mt-2 space-y-2">
-                      {repoData.languages.map((lang) => (
-                        <div key={lang.name} className="flex items-center justify-between">
-                          <span className="text-sm">{lang.name}</span>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              {lang.version}
-                            </Badge>
-                            <Badge className="bg-primary/10 text-xs">{lang.percentage}%</Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="flex items-center gap-2 font-medium">
-                      <Server className="h-4 w-4 text-muted-foreground" />
-                      Runtimes
-                    </h3>
-                    <div className="mt-1 flex flex-wrap gap-2">
-                      {repoData.runtimes.map((runtime) => (
-                        <Badge
-                          key={runtime}
-                          className="bg-blue-100 text-blue-800 dark:bg-blue-800/20 dark:text-blue-400"
-                        >
-                          {runtime}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="flex items-center gap-2 font-medium">
-                      <Package className="h-4 w-4 text-muted-foreground" />
-                      Package Managers
-                    </h3>
-                    <div className="mt-1 flex flex-wrap gap-2">
-                      {repoData.packageManagers.map((pm) => (
-                        <Badge key={pm} className="bg-primary/10">
-                          {pm}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="flex items-center gap-2 font-medium">
-                      <TestTube className="h-4 w-4 text-muted-foreground" />
-                      Testing Frameworks
-                    </h3>
-                    <div className="mt-1 flex flex-wrap gap-2">
-                      {repoData.testingFrameworks.map((tf) => (
-                        <Badge key={tf} className="bg-primary/10">
-                          {tf}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* CI/CD Tab */}
-              <TabsContent value="cicd">
-                <div className="space-y-4 pt-4">
-                  <div>
-                    <h3 className="flex items-center gap-2 font-medium">
-                      <Workflow className="h-4 w-4 text-muted-foreground" />
-                      CI/CD Provider
-                    </h3>
-                    <div className="mt-1">
-                      <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-800/20 dark:text-purple-400">
-                        {repoData.cicd.provider}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="flex items-center gap-2 font-medium">
-                      <GitBranch className="h-4 w-4 text-muted-foreground" />
-                      Workflows
-                    </h3>
-                    <div className="mt-2 space-y-2">
-                      {repoData.cicd.workflows.map((workflow, index) => (
-                        <div key={index} className="rounded-md border p-2">
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium text-sm">{workflow.name}</span>
-                            {renderStatusBadge(workflow.status)}
-                          </div>
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {workflow.triggers.map((trigger) => (
-                              <Badge key={trigger} variant="outline" className="text-xs">
-                                {trigger}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* Tools Tab */}
-              <TabsContent value="tools">
-                <div className="space-y-4 pt-4">
-                  <h3 className="flex items-center gap-2 font-medium">
-                    <Shield className="h-4 w-4 text-muted-foreground" />
-                    Connected Tools
-                  </h3>
-                  <div className="space-y-2">
-                    {repoData.connectedTools.map((tool, index) => (
-                      <div key={index} className="flex items-center justify-between rounded-md border p-2">
-                        <div>
-                          <div className="font-medium text-sm">{tool.name}</div>
-                          <div className="text-xs text-muted-foreground">{tool.type}</div>
-                        </div>
-                        {renderStatusBadge(tool.status)}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* PR Tab */}
-              <TabsContent value="pr">
-                <div className="space-y-4 pt-4">
-                  <div>
-                    <h3 className="flex items-center gap-2 font-medium">
-                      <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                      PR Status Checks
-                    </h3>
-                    <div className="mt-2 space-y-2">
-                      {repoData.prChecks.map((check, index) => (
-                        <div key={index} className="flex items-center justify-between rounded-md border p-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">{check.name}</span>
-                            {check.required && (
-                              <Badge variant="outline" className="text-xs">
-                                Required
-                              </Badge>
-                            )}
-                          </div>
-                          {renderStatusBadge(check.status)}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div>
-                    <h3 className="flex items-center gap-2 font-medium">
-                      <GitPullRequest className="h-4 w-4 text-muted-foreground" />
-                      PR Workflows
-                    </h3>
-                    <div className="mt-2 space-y-2">
-                      {repoData.prWorkflows.map((workflow, index) => (
-                        <div key={index} className="flex items-center justify-between rounded-md border p-2">
-                          <span className="text-sm">{workflow.name}</span>
-                          {renderStatusBadge(workflow.status)}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>AI Summary</CardTitle>
-            <CardDescription>Generated overview of the repository</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RepoSummary summary={repoData.summary} />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Code Explorer with Split View */}
-      <Card className="mt-6 overflow-hidden">
-        <CardHeader className="border-b bg-muted/50 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Repository Explorer</CardTitle>
-            <div className="flex items-center gap-2">
-              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "code" | "docs")}>
-                <TabsList>
-                  <TabsTrigger value="code" className="flex items-center gap-2">
-                    <Code className="h-4 w-4" />
-                    Code
-                  </TabsTrigger>
-                  <TabsTrigger value="docs" className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Documentation
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+      <ResizablePanelGroup direction="horizontal">
+        <ResizablePanel defaultSize={20} minSize={15}>
+          <div className="flex h-full flex-col">
+            <div className="border-b p-2">
+              <div className="relative">
+                <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search files..."
+                  className="w-full pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={clearSearch}
+                    className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <ResizablePanelGroup direction="horizontal" className="min-h-[600px]">
-            {/* File Explorer Panel */}
-            <ResizablePanel defaultSize={25} minSize={20} maxSize={40} className="border-r">
-              <div className="flex h-full flex-col">
-                {/* Search Bar */}
-                <div className="border-b p-2">
-                  <div className="relative">
-                    <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="Search files..."
-                      className="pl-8 pr-8"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={clearSearch}
-                        className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
+
+            {searchQuery ? (
+              <SearchResults 
+                results={searchResults} 
+                onSelectFile={handleFileSelect} 
+                isSearching={isSearching}
+                query={searchQuery}
+                selectedFile={selectedFile}
+              />
+            ) : (
+              isLoadingFiles ? (
+                <div className="flex h-full items-center justify-center">
+                  <div className="text-center">
+                    <div className="animate-spin mb-2 h-8 w-8 mx-auto border-2 border-primary border-t-transparent rounded-full" />
+                    <p className="text-sm text-muted-foreground">Loading files...</p>
                   </div>
                 </div>
-
-                {/* File Explorer or Search Results */}
-                <div className="flex-1 overflow-auto">
-                  {searchQuery ? (
-                    <SearchResults
-                      results={searchResults}
-                      isSearching={isSearching}
-                      query={searchQuery}
-                      onSelectFile={handleFileSelect}
-                      selectedFile={selectedFile}
-                    />
+              ) : error ? (
+                <div className="flex h-full items-center justify-center p-4">
+                  <div className="text-center text-destructive">
+                    <p className="mb-2 font-semibold">Error</p>
+                    <p className="text-sm">{error}</p>
+                  </div>
+                </div>
+              ) : (
+                <FileExplorer 
+                  files={fileStructure.length > 0 ? fileStructure : repoData.structure} 
+                  onSelectFile={handleFileSelect} 
+                  selectedFile={selectedFile} 
+                />
+              )
+            )}
+          </div>
+        </ResizablePanel>
+        
+        <ResizableHandle withHandle />
+        
+        <ResizablePanel defaultSize={55}>
+          <div className="flex h-full flex-col">
+            <div className="border-b px-4 py-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  {selectedFile ? (
+                    <>
+                      <FileCode className="mr-2 h-5 w-5" />
+                      <span className="text-sm font-medium">{selectedFile}</span>
+                    </>
                   ) : (
-                    <FileExplorer
-                      files={repoData.structure}
-                      onSelectFile={handleFileSelect}
-                      selectedFile={selectedFile}
-                    />
+                    <span className="text-sm text-muted-foreground">No file selected</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "code" | "docs")} className="mr-2">
+                    <TabsList className="h-8">
+                      <TabsTrigger value="code" className="h-7 text-xs">
+                        <Code className="mr-1 h-3.5 w-3.5" />
+                        Code
+                      </TabsTrigger>
+                      <TabsTrigger value="docs" className="h-7 text-xs">
+                        <FileText className="mr-1 h-3.5 w-3.5" />
+                        Docs
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                  
+                  {/* In file search */}
+                  {selectedFile && activeTab === "code" && (
+                    <div className="relative">
+                      <SearchIcon className="absolute left-2 top-1.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="search"
+                        placeholder="Search in file..."
+                        className="h-7 w-40 pl-7 text-xs"
+                        value={inFileSearch}
+                        onChange={(e) => setInFileSearch(e.target.value)}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
-            </ResizablePanel>
-
-            {/* Resizable Handle */}
-            <ResizableHandle withHandle />
-
-            {/* Code/Docs Viewer Panel */}
-            <ResizablePanel defaultSize={75}>
-              <div className="h-full overflow-auto">
-                {activeTab === "code" ? (
-                  <CodeViewer
+            </div>
+            
+            <div className="h-full overflow-auto p-4">
+              {isLoadingContent ? (
+                <div className="flex h-full items-center justify-center">
+                  <div className="text-center">
+                    <div className="animate-spin mb-2 h-8 w-8 mx-auto border-2 border-primary border-t-transparent rounded-full" />
+                    <p className="text-sm text-muted-foreground">Loading file content...</p>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="flex h-full items-center justify-center">
+                  <div className="text-center text-destructive">
+                    <p className="mb-2 font-semibold">Error</p>
+                    <p className="text-sm">{error}</p>
+                  </div>
+                </div>
+              ) : activeTab === "code" ? (
+                selectedFile ? (
+                  <CodeViewer 
+                    code={selectedFileContent || "// Loading..."} 
+                    language={language} 
+                    searchTerm={inFileSearch} 
                     filePath={selectedFile}
-                    searchTerm={inFileSearch}
-                    onSearchChange={setInFileSearch}
-                    language={language}
                   />
                 ) : (
-                  <div className="p-6">
-                    <h3 className="text-lg font-medium">README.md</h3>
-                    <div className="mt-4 rounded-md border p-4">
-                      <h1 className="text-xl font-bold">Example Repository</h1>
-                      <p className="mt-2">
-                        This is a sample repository for demonstration purposes. It contains a Next.js application that
-                        provides a dashboard for GitHub repositories and a feature planner with AI assistance.
-                      </p>
-                      <h2 className="mt-4 text-lg font-semibold">Features</h2>
-                      <ul className="mt-2 list-inside list-disc">
-                        <li>Repository dashboard with AI-powered insights</li>
-                        <li>Feature planner with AI assistance</li>
-                        <li>File explorer with syntax highlighting</li>
-                        <li>GitHub integration for creating branches and PRs</li>
-                      </ul>
-                    </div>
+                  <div className="flex h-full flex-col items-center justify-center">
+                    <FileCode className="mb-4 h-12 w-12 text-muted-foreground" />
+                    <h3 className="mb-2 text-lg font-medium">No File Selected</h3>
+                    <p className="text-center text-sm text-muted-foreground">
+                      Select a file from the file explorer to view its contents
+                    </p>
                   </div>
-                )}
-              </div>
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        </CardContent>
-      </Card>
+                )
+              ) : (
+                <RepoSummary 
+                  repository={repoData} 
+                  summary={repoData.summary}
+                />
+              )}
+            </div>
+          </div>
+        </ResizablePanel>
+        
+        <ResizableHandle withHandle />
+        
+        <ResizablePanel defaultSize={25}>
+          <div className="h-full overflow-auto p-4">
+            <RepositoryInfo 
+              repository={repositoryData.repository}
+              branches={repositoryData.branches}
+              contributors={repositoryData.contributors}
+              languages={repositoryData.languages}
+              pullRequests={repositoryData.pullRequests}
+              commitActivity={repositoryData.commitActivity}
+              codeFrequency={repositoryData.codeFrequency}
+              participation={repositoryData.participation}
+            />
+          </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   )
 }

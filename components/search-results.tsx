@@ -7,12 +7,12 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 interface SearchResultsProps {
   results: any[]
   isSearching: boolean
-  query: string
+  query?: string
   onSelectFile: (path: string | null) => void
-  selectedFile: string | null
+  selectedFile?: string | null
 }
 
-export function SearchResults({ results, isSearching, query, onSelectFile, selectedFile }: SearchResultsProps) {
+export function SearchResults({ results, isSearching, query = "", onSelectFile, selectedFile }: SearchResultsProps) {
   // Memoize the click handler to prevent unnecessary re-renders
   const handleFileClick = (path: string) => {
     if (path) {

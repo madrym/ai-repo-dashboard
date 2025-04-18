@@ -1,13 +1,17 @@
 interface RepoSummaryProps {
-  summary: string
+  summary?: string
+  repository?: any
 }
 
-export function RepoSummary({ summary }: RepoSummaryProps) {
+export function RepoSummary({ summary, repository }: RepoSummaryProps) {
+  // Use repository summary if available, otherwise use provided summary
+  const displaySummary = repository?.summary || summary || "No repository summary available."
+  
   return (
     <div className="space-y-4">
       <div className="rounded-md border p-4">
         <h3 className="text-lg font-medium">Repository Overview</h3>
-        <p className="mt-2 text-muted-foreground">{summary}</p>
+        <p className="mt-2 text-muted-foreground">{displaySummary}</p>
       </div>
 
       <div className="rounded-md border p-4">

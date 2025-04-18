@@ -10,11 +10,13 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/use-toast"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { useRepository } from "@/lib/github/context"
 
 export default function AuthPage() {
   const router = useRouter()
+  const { connectRepository, isLoading, error: contextError } = useRepository()
   const [repoUrl, setRepoUrl] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleConnect = async () => {
     if (!repoUrl) {
@@ -26,17 +28,29 @@ export default function AuthPage() {
       return
     }
 
-    setLoading(true)
+    setError(null)
 
-    // Simulate authentication and repository connection
-    setTimeout(() => {
-      setLoading(false)
+    try {
+      // Connect repository using context
+      await connectRepository(repoUrl)
+      
       toast({
         title: "Repository connected",
-        description: "Successfully connected to your GitHub repository",
+        description: "Successfully connected to GitHub repository",
       })
+
+      // Navigate to the dashboard
       router.push("/dashboard")
-    }, 2000)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+      setError(errorMessage)
+      
+      toast({
+        title: "Connection failed",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -65,6 +79,8 @@ export default function AuthPage() {
                     value={repoUrl}
                     onChange={(e) => setRepoUrl(e.target.value)}
                   />
+                  {error && <p className="text-sm text-red-500">{error}</p>}
+                  {contextError && !error && <p className="text-sm text-red-500">{contextError}</p>}
                 </div>
                 <div className="flex items-center gap-2 rounded-md border p-3">
                   <Lock className="h-4 w-4 text-muted-foreground" />
@@ -88,8 +104,8 @@ export default function AuthPage() {
           </Tabs>
         </CardContent>
         <CardFooter>
-          <Button className="w-full" onClick={handleConnect} disabled={loading}>
-            {loading ? "Connecting..." : "Connect Repository"}
+          <Button className="w-full" onClick={handleConnect} disabled={isLoading}>
+            {isLoading ? "Connecting..." : "Connect Repository"}
           </Button>
         </CardFooter>
       </Card>

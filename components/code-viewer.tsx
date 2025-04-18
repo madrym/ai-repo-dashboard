@@ -10,7 +10,9 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
 interface CodeViewerProps {
-  filePath: string | null
+  filePath?: string | null
+  code?: string | null
+  language?: string
   searchTerm?: string
   onSearchChange?: (term: string) => void
 }
@@ -25,12 +27,12 @@ interface CodeLine {
   hidden?: boolean
 }
 
-export function CodeViewer({ filePath, searchTerm = "", onSearchChange }: CodeViewerProps) {
-  const [code, setCode] = useState<string | null>(null)
+export function CodeViewer({ filePath, code: initialCode = null, language: initialLanguage = "typescript", searchTerm = "", onSearchChange }: CodeViewerProps) {
+  const [code, setCode] = useState<string | null>(initialCode)
   const [codeLines, setCodeLines] = useState<CodeLine[]>([])
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [language, setLanguage] = useState("typescript")
+  const [language, setLanguage] = useState(initialLanguage)
   const [searchResults, setSearchResults] = useState<number[]>([])
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0)
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm)
@@ -77,10 +79,20 @@ export function CodeViewer({ filePath, searchTerm = "", onSearchChange }: CodeVi
     }
   }, [filePath])
 
+  // Process code into lines with folding information
+  useEffect(() => {
+    if (initialCode) {
+      setCode(initialCode);
+      processCodeContent(initialCode);
+    }
+  }, [initialCode]);
+
   useEffect(() => {
     if (!filePath) {
-      setCode(null)
-      setCodeLines([])
+      if (!initialCode) {
+        setCode(null)
+        setCodeLines([])
+      }
       return
     }
 
@@ -179,25 +191,28 @@ For more information, please refer to the [documentation](https://example.com/do
       }
 
       setCode(mockCode)
-
-      // Process code into lines with folding information
-      const lines = mockCode.split("\n").map((line, index) => {
-        const indentation = line.search(/\S|$/)
-        const isFoldable = line.includes("{") && !line.includes("}")
-
-        return {
-          number: index + 1,
-          content: line,
-          isFoldable,
-          isFolded: false,
-          indentation,
-        }
-      })
-
-      setCodeLines(lines)
+      processCodeContent(mockCode)
       setLoading(false)
     }, 500)
-  }, [filePath])
+  }, [filePath, initialCode])
+
+  const processCodeContent = (content: string) => {
+    // Process code into lines with folding information
+    const lines = content.split("\n").map((line, index) => {
+      const indentation = line.search(/\S|$/)
+      const isFoldable = line.includes("{") && !line.includes("}")
+
+      return {
+        number: index + 1,
+        content: line,
+        isFoldable,
+        isFolded: false,
+        indentation,
+      }
+    })
+
+    setCodeLines(lines)
+  }
 
   // Handle search within file
   useEffect(() => {

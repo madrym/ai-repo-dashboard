@@ -8,7 +8,7 @@ import { openai } from '@ai-sdk/openai';
  * OpenAI model configuration options
  */
 export interface OpenAIModelConfig {
-  /** The model identifier to use (e.g., "gpt-4o", "gpt-3.5-turbo") */
+  /** The model identifier to use (e.g., "gpt-4o", "gpt-4.1") */
   modelName: string;
   /** Optional fallback model to use if primary model is unavailable */
   fallbackModel?: string;

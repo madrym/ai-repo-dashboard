@@ -128,6 +128,13 @@ class GitHubApiClient {
 // Create a singleton instance of the GitHub API client
 const githubApiClient = new GitHubApiClient();
 
+// Add a function to manually set the API key if needed
+export const setGitHubApiKey = (apiKey: string) => {
+  // @ts-ignore - Directly setting a private property for debugging purposes
+  githubApiClient.apiKey = apiKey;
+  console.log('API key manually set');
+};
+
 /**
  * Cached API request function with React cache
  */

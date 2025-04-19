@@ -17,26 +17,39 @@ interface CodeViewerProps {
   onSearchChange?: (term: string) => void
 }
 
+// Define line interface
 interface CodeLine {
-  number: number
-  content: string
-  isFoldable?: boolean
-  isFolded?: boolean
-  indentation: number
-  highlighted?: boolean
-  hidden?: boolean
+  number: number;
+  content: string;
+  isFoldable?: boolean;
+  isFolded?: boolean;
+  indentation?: number;
+  hidden?: boolean;
+  highlighted?: boolean;
 }
 
 export function CodeViewer({ filePath, code: initialCode = null, language: initialLanguage = "typescript", searchTerm = "", onSearchChange }: CodeViewerProps) {
-  const [code, setCode] = useState<string | null>(initialCode)
+  const [code, setCode] = useState<string | null>(null)
   const [codeLines, setCodeLines] = useState<CodeLine[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
   const [language, setLanguage] = useState(initialLanguage)
   const [searchResults, setSearchResults] = useState<number[]>([])
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0)
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm)
   const codeRef = useRef<HTMLDivElement>(null)
+
+  // Debugging: Log props when they change
+  useEffect(() => {
+    console.log("CodeViewer props changed:", { 
+      filePath, 
+      initialCodeLength: initialCode ? initialCode.length : 0,
+      language: initialLanguage
+    });
+    if (initialCode) {
+      console.log("First 100 chars of code:", initialCode.substring(0, 100));
+    }
+  }, [filePath, initialCode, initialLanguage]);
 
   // Update local search term when prop changes
   useEffect(() => {
@@ -79,139 +92,66 @@ export function CodeViewer({ filePath, code: initialCode = null, language: initi
     }
   }, [filePath])
 
-  // Process code into lines with folding information
+  // When initialCode changes, process it
   useEffect(() => {
+    console.log("initialCode changed:", initialCode ? `${initialCode.length} chars` : "null");
+    
     if (initialCode) {
+      console.log("Setting code state with content length:", initialCode.length);
       setCode(initialCode);
       processCodeContent(initialCode);
+      setLoading(false);
     }
   }, [initialCode]);
 
+  // Reset state when filePath changes
   useEffect(() => {
     if (!filePath) {
-      if (!initialCode) {
-        setCode(null)
-        setCodeLines([])
-      }
-      return
+      setLoading(false);
+      return;
     }
 
-    setLoading(true)
-
-    // Simulate fetching code content
-    setTimeout(() => {
-      // Mock code content based on file path
-      let mockCode = ""
-
-      if (filePath.endsWith(".tsx") || filePath.endsWith(".ts")) {
-        mockCode = `// ${filePath}
-import React from 'react';
-import { Button } from '@/components/ui/button';
-
-interface ExampleProps {
-  title: string;
-  description?: string;
-}
-
-export function ExampleComponent({ title, description }: ExampleProps) {
-  const [count, setCount] = React.useState(0);
-  
-  const handleIncrement = () => {
-    setCount((prevCount) => prevCount + 1);
-  };
-  
-  const handleReset = () => {
-    setCount(0);
-  };
-
-  return (
-    <div className="p-4 border rounded-md">
-      <h1 className="text-xl font-bold">{title}</h1>
-      {description && (
-        <p className="mt-2 text-gray-500">{description}</p>
-      )}
-      
-      <div className="mt-4">
-        <p>Count: {count}</p>
-        <div className="flex gap-2 mt-2">
-          <Button onClick={handleIncrement}>Increment</Button>
-          <Button variant="outline" onClick={handleReset}>Reset</Button>
-        </div>
-      </div>
-    </div>
-  );
-}`
-      } else if (filePath.endsWith(".json")) {
-        mockCode = `{
-  "name": "example-repo",
-  "version": "1.0.0",
-  "description": "A sample repository for demonstration",
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "next": "^14.0.0",
-    "lucide-react": "^0.294.0",
-    "tailwindcss": "^3.3.0",
-    "class-variance-authority": "^0.7.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.0.0",
-    "eslint": "^8.0.0",
-    "prettier": "^3.0.0"
-  }
-}`
-      } else if (filePath.endsWith(".md")) {
-        mockCode = `# Example Repository
-
-This is a sample repository for demonstration purposes.
-
-## Features
-
-- Repository dashboard
-- Feature planner
-- GitHub integration
-
-## Getting Started
-
-1. Clone the repository
-2. Install dependencies with \`npm install\`
-3. Run the development server with \`npm run dev\`
-
-## Documentation
-
-For more information, please refer to the [documentation](https://example.com/docs).`
-      } else {
-        mockCode = `// No preview available for ${filePath}`
-      }
-
-      setCode(mockCode)
-      processCodeContent(mockCode)
-      setLoading(false)
-    }, 500)
-  }, [filePath, initialCode])
+    console.log("filePath changed, resetting state");
+    setLoading(true);
+    
+    // Important: If initialCode is already provided, process it
+    if (initialCode) {
+      console.log("Initial code is already available on filePath change");
+      setCode(initialCode);
+      processCodeContent(initialCode);
+      setLoading(false);
+    }
+  }, [filePath]);
 
   const processCodeContent = (content: string) => {
+    console.log("Processing code content, length:", content.length);
     // Process code into lines with folding information
-    const lines = content.split("\n").map((line, index) => {
-      const indentation = line.search(/\S|$/)
-      const isFoldable = line.includes("{") && !line.includes("}")
-
-      return {
-        number: index + 1,
-        content: line,
-        isFoldable,
-        isFolded: false,
-        indentation,
+    try {
+      if (!content || content.length === 0) {
+        console.error("Empty content provided to processCodeContent");
+        setCodeLines([]);
+        return;
       }
-    })
+      
+      const lines = content.split("\n").map((line, index) => {
+        const indentation = line.search(/\S|$/)
+        const isFoldable = line.includes("{") && !line.includes("}")
 
-    setCodeLines(lines)
+        return {
+          number: index + 1,
+          content: line,
+          isFoldable,
+          isFolded: false,
+          indentation,
+        }
+      })
+
+      console.log(`Processed ${lines.length} lines of code`);
+      setCodeLines(lines)
+    } catch (error) {
+      console.error("Error processing code content:", error);
+      setCodeLines([]);
+    }
   }
 
   // Handle search within file
@@ -276,14 +216,16 @@ For more information, please refer to the [documentation](https://example.com/do
     // If folding, hide all lines with greater indentation until we reach a line with equal or less indentation
     if (targetLine.isFolded) {
       let i = lineIndex + 1
-      while (i < newCodeLines.length && newCodeLines[i].indentation > targetLine.indentation) {
+      const targetIndentation = targetLine.indentation ?? 0
+      while (i < newCodeLines.length && (newCodeLines[i].indentation ?? 0) > targetIndentation) {
         newCodeLines[i].hidden = true
         i++
       }
     } else {
       // If unfolding, show all lines until we reach a line with equal or less indentation
       let i = lineIndex + 1
-      while (i < newCodeLines.length && newCodeLines[i].indentation > targetLine.indentation) {
+      const targetIndentation = targetLine.indentation ?? 0
+      while (i < newCodeLines.length && (newCodeLines[i].indentation ?? 0) > targetIndentation) {
         newCodeLines[i].hidden = false
         i++
       }
@@ -338,9 +280,29 @@ For more information, please refer to the [documentation](https://example.com/do
   }
 
   if (loading) {
+    console.log("Rendering loading state");
     return (
       <div className="flex h-full items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  // Show debug info if no code content is available
+  if (!code || codeLines.length === 0) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+        <div className="text-destructive">
+          <h3 className="mb-2 text-lg font-medium">Content Loading Issue</h3>
+          <p className="mb-4">
+            File content is empty or couldn't be processed correctly.
+          </p>
+          <pre className="mb-4 max-w-full overflow-auto rounded bg-muted p-4 text-left text-xs">
+            <code>
+              {`File: ${filePath}\nCode null: ${code === null}\nCode length: ${code?.length ?? 0}\nLines: ${codeLines.length}`}
+            </code>
+          </pre>
+        </div>
       </div>
     )
   }
@@ -372,6 +334,8 @@ For more information, please refer to the [documentation](https://example.com/do
 
     return content
   }
+
+  console.log("Rendering CodeViewer with content:", code ? `${code.length} chars` : "null", "and", codeLines.length, "lines"); 
 
   return (
     <div className="flex h-full flex-col">
@@ -449,29 +413,16 @@ For more information, please refer to the [documentation](https://example.com/do
             </div>
 
             {/* Code content */}
-            <pre className="relative flex-1 overflow-auto p-4 font-mono text-xs">
-              <code>
+            <pre className="flex-1 overflow-auto p-4 text-sm">
+              <code className="font-mono">
                 {codeLines
                   .filter((line) => !line.hidden)
                   .map((line, index) => {
                     // Apply basic syntax highlighting
-                    let content = line.content
-                    content = applyBasicSyntaxHighlighting(content, language)
-
-                    // Highlight search matches if any
-                    if (localSearchTerm && line.content.toLowerCase().includes(localSearchTerm.toLowerCase())) {
-                      const regex = new RegExp(`(${localSearchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi")
-                      const parts = line.content.split(regex)
-
-                      content = parts
-                        .map((part, i) => {
-                          if (regex.test(part)) {
-                            return `<span class="bg-yellow-200 dark:bg-yellow-800/50">${part}</span>`
-                          }
-                          return part
-                        })
-                        .join("")
-                    }
+                    const content = applyBasicSyntaxHighlighting(
+                      line.content,
+                      language,
+                    );
 
                     return (
                       <div

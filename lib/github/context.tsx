@@ -24,6 +24,10 @@ interface RepositoryData {
   commitActivity?: any;
   codeFrequency?: any;
   participation?: any;
+  localPath?: string; // Add local path for cloned repos
+  isLocal?: boolean; // Flag to indicate if the repo is available locally
+  repomixSummary?: any; // Add repomix summary
+  repomixContent?: string; // Add this line
 }
 
 // Context interface
@@ -38,6 +42,11 @@ interface RepositoryContextType {
   getRepositoryFiles: (repoFullName: string) => Promise<FileNode[]>;
   getRepositoryFileContent: (repoFullName: string, path: string) => Promise<string>;
   getRepositoryDetailedStats: (repoFullName: string) => Promise<void>;
+  getLocalRepositoryStructure: (repoFullName: string) => Promise<FileNode[]>;
+  getLocalFileContent: (repoFullName: string, filePath: string) => Promise<string>;
+  getRepomixSummary: (repoFullName: string) => Promise<any>;
+  getRepomixFiles: (repoFullName: string) => Promise<string[]>;
+  generateRepomixSummary: (repoFullName: string) => Promise<boolean>;
 }
 
 // Create the context
@@ -52,29 +61,45 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
 
   // Initialize from session storage on mount
   useEffect(() => {
+    console.log("🔍 [DEBUG] RepositoryProvider initialization useEffect triggered");
+    
     const storedData = sessionStorage.getItem('repositoryData');
+    console.log("🔍 [DEBUG] Found stored repository data:", !!storedData);
+    
     if (storedData) {
       try {
         const data = JSON.parse(storedData);
+        console.log("🔍 [DEBUG] Parsed stored data:", !!data);
+        
         if (data.repository && data.repository.full_name) {
+          console.log(`🔍 [DEBUG] Initializing repository from storage: ${data.repository.full_name}`);
+          
           setRepositories({
             [data.repository.full_name]: {
               repository: data.repository,
               branches: data.branches || [],
               contributors: data.contributors || [],
               languages: data.languages || {},
+              isLocal: data.isLocal || false,
+              localPath: data.localPath
             }
           });
           setCurrentRepository(data.repository.full_name);
+          
+          // Important: Don't set the user_selected_repo flag during initialization
+          // That should only be set when a user explicitly selects a repository
+          console.log("🔍 [DEBUG] Repository initialized from storage but not marked as user-selected");
         }
       } catch (err) {
         console.error('Error parsing stored repository data:', err);
+        console.log("🔍 [DEBUG] Error parsing stored data:", err instanceof Error ? err.message : 'Unknown error');
       }
     }
   }, []);
 
   // Connect to a repository
   const connectRepository = async (url: string) => {
+    console.log(`🔍 [DEBUG] connectRepository called with URL: ${url}`);
     setIsLoading(true);
     setError(null);
 
@@ -83,10 +108,32 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
       const repoIdentifier = parseRepositoryUrl(url);
       
       if (!repoIdentifier) {
+        console.log(`🔍 [DEBUG] connectRepository - Invalid GitHub repository URL: ${url}`);
         throw new Error('Invalid GitHub repository URL');
       }
       
-      // Fetch repository data
+      // First, try to clone the repository locally
+      console.log(`🔍 [DEBUG] connectRepository - Attempting to clone repository: ${url}`);
+      const cloneResponse = await fetch('/api/repositories/clone', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ repositoryUrl: url }),
+      });
+      
+      const cloneData = await cloneResponse.json();
+      
+      if (!cloneResponse.ok) {
+        console.error('Warning: Could not clone repository locally:', cloneData.error);
+        console.log(`🔍 [DEBUG] connectRepository - Clone failed: ${cloneData.error}`);
+        // Continue with remote API if local clone fails
+      } else {
+        console.log(`🔍 [DEBUG] connectRepository - Repository cloned successfully at: ${cloneData.localPath}`);
+      }
+      
+      // Fetch repository data from GitHub API
+      console.log(`🔍 [DEBUG] connectRepository - Fetching repository data from GitHub API`);
       const response = await fetch('/api/repositories/connect', {
         method: 'POST',
         headers: {
@@ -98,11 +145,13 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
       
       if (!response.ok) {
+        console.log(`🔍 [DEBUG] connectRepository - GitHub API error: ${data.error}`);
         throw new Error(data.error || 'Failed to connect to repository');
       }
       
       // Store in state
       const repoFullName = data.repository.full_name;
+      console.log(`🔍 [DEBUG] connectRepository - Connected to repository: ${repoFullName}`);
       
       setRepositories(prev => ({
         ...prev,
@@ -111,15 +160,27 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
           branches: data.branches,
           contributors: data.contributors,
           languages: data.languages,
+          isLocal: cloneResponse.ok, // Flag if the repo was cloned successfully
+          localPath: cloneResponse.ok ? cloneData.localPath : undefined
         }
       }));
       
       setCurrentRepository(repoFullName);
       
+      // Set a flag in session storage to indicate this was an explicit user selection
+      sessionStorage.setItem('user_selected_repo', repoFullName);
+      console.log(`🔍 [DEBUG] connectRepository - Set user_selected_repo in sessionStorage: ${repoFullName}`);
+      
       // Store in session storage
-      sessionStorage.setItem('repositoryData', JSON.stringify(data));
+      sessionStorage.setItem('repositoryData', JSON.stringify({
+        ...data,
+        isLocal: cloneResponse.ok,
+        localPath: cloneResponse.ok ? cloneData.localPath : undefined
+      }));
+      console.log(`🔍 [DEBUG] connectRepository - Stored repository data in sessionStorage`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      console.log(`🔍 [DEBUG] connectRepository - Error: ${errorMessage}`);
       setError(errorMessage);
       throw err;
     } finally {
@@ -131,6 +192,9 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
   const selectRepository = (repoFullName: string) => {
     if (repositories[repoFullName]) {
       setCurrentRepository(repoFullName);
+      
+      // Set a flag in session storage to indicate this was an explicit user selection
+      sessionStorage.setItem('user_selected_repo', repoFullName);
     }
   };
 
@@ -148,7 +212,12 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       
-      // Parse repository identifier
+      // If repository is available locally, use local file structure
+      if (repositories[repoFullName].isLocal) {
+        return getLocalRepositoryStructure(repoFullName);
+      }
+      
+      // Otherwise, fallback to GitHub API
       const [owner, repo] = repoFullName.split('/');
       const repoIdentifier: RepositoryIdentifier = { owner, repo };
       
@@ -183,7 +252,12 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       
-      // Fetch file content through API route
+      // If repository is available locally, use local file content
+      if (repositories[repoFullName].isLocal) {
+        return getLocalFileContent(repoFullName, path);
+      }
+      
+      // Otherwise, fallback to GitHub API
       const response = await fetch('/api/repositories/file-content', {
         method: 'POST',
         headers: {
@@ -244,6 +318,241 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Get local repository structure
+  const getLocalRepositoryStructure = async (repoFullName: string): Promise<FileNode[]> => {
+    if (!repositories[repoFullName] || !repositories[repoFullName].isLocal) {
+      throw new Error('Repository not available locally');
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      const [owner, repo] = repoFullName.split('/');
+      
+      // Fetch local file structure
+      const response = await fetch('/api/repositories/local-structure', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ owner, repo }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get local repository structure');
+      }
+      
+      // Update repositories state
+      setRepositories(prev => ({
+        ...prev,
+        [repoFullName]: {
+          ...prev[repoFullName],
+          fileStructure: data.fileTree
+        }
+      }));
+      
+      return data.fileTree;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to get local repository structure';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Get local file content
+  const getLocalFileContent = async (repoFullName: string, filePath: string): Promise<string> => {
+    if (!repositories[repoFullName] || !repositories[repoFullName].isLocal) {
+      throw new Error('Repository not available locally');
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      const [owner, repo] = repoFullName.split('/');
+      
+      // Fetch local file content
+      const response = await fetch('/api/repositories/local-file', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ owner, repo, filePath }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get local file content');
+      }
+      
+      return data.content;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to get local file content';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Get repomix summary for a repository
+  const getRepomixSummary = async (repoFullName: string): Promise<any> => {
+    if (!repositories[repoFullName]) {
+      throw new Error('Repository not connected');
+    }
+    
+    try {
+      // If we already have repomix content and summary, return existing data
+      if (repositories[repoFullName].repomixContent && repositories[repoFullName].repomixSummary) {
+        console.log("Using cached repomix data - preventing redundant API calls");
+        return repositories[repoFullName].repomixSummary;
+      }
+      
+      setIsLoading(true);
+      
+      // If repository is not available locally, throw error
+      if (!repositories[repoFullName].isLocal) {
+        throw new Error('Repository not available locally');
+      }
+      
+      const [owner, repo] = repoFullName.split('/');
+      const branch = repositories[repoFullName].repository.default_branch || 'main';
+      
+      // Get the summary
+      const response = await fetch(`/api/repositories/repomix?owner=${owner}&repo=${repo}&branch=${branch}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get repomix summary');
+      }
+      
+      const data = await response.json();
+      
+      // Get the raw XML content
+      const xmlResponse = await fetch(`/api/repositories/repomix-xml?owner=${owner}&repo=${repo}&branch=${branch}`);
+      
+      let xmlContent = '';
+      if (xmlResponse.ok) {
+        xmlContent = await xmlResponse.text();
+      }
+      
+      // Update repository data with repomix summary and content
+      setRepositories(prev => ({
+        ...prev,
+        [repoFullName]: {
+          ...prev[repoFullName],
+          repomixSummary: data,
+          repomixContent: xmlContent
+        }
+      }));
+      
+      return data;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to get repomix summary';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Get repomix files for a repository
+  const getRepomixFiles = async (repoFullName: string): Promise<string[]> => {
+    if (!repositories[repoFullName]) {
+      throw new Error('Repository not connected');
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      // If repository is not available locally, throw error
+      if (!repositories[repoFullName].isLocal) {
+        throw new Error('Repository not available locally');
+      }
+      
+      const [owner, repo] = repoFullName.split('/');
+      const branch = repositories[repoFullName].repository.default_branch || 'main';
+      
+      // Fetch repomix files
+      const response = await fetch('/api/repositories/repomix-files', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ owner, repo, branch }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get repomix files');
+      }
+      
+      return data.files;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to get repomix files';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Generate repomix summary for a repository
+  const generateRepomixSummary = async (repoFullName: string): Promise<boolean> => {
+    if (!repositories[repoFullName]) {
+      throw new Error('Repository not connected');
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      // If repository is not available locally, throw error
+      if (!repositories[repoFullName].isLocal) {
+        throw new Error('Repository not available locally');
+      }
+      
+      const [owner, repo] = repoFullName.split('/');
+      const branch = repositories[repoFullName].repository.default_branch || 'main';
+      
+      console.log(`Attempting to generate repomix summary for ${owner}/${repo} (${branch})`);
+      
+      // Generate repomix summary
+      const response = await fetch('/api/repositories/generate-repomix', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ owner, repo, branch }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        console.error('Failed to generate repomix summary:', data.error);
+        throw new Error(data.error || 'Failed to generate repomix summary');
+      }
+      
+      console.log('Repomix summary generated successfully, now fetching the content');
+      
+      // Fetch the updated summary
+      await getRepomixSummary(repoFullName);
+      
+      return true;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate repomix summary';
+      console.error('Error generating repomix summary:', errorMessage);
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Provide context
   return (
     <RepositoryContext.Provider 
@@ -258,6 +567,11 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
         getRepositoryFiles,
         getRepositoryFileContent,
         getRepositoryDetailedStats: fetchDetailedRepositoryStats,
+        getLocalRepositoryStructure,
+        getLocalFileContent,
+        getRepomixSummary,
+        getRepomixFiles,
+        generateRepomixSummary,
       }}
     >
       {children}

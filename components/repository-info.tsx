@@ -15,6 +15,7 @@ interface RepositoryInfoProps {
   commitActivity?: any;
   codeFrequency?: any;
   participation?: any;
+  compact?: boolean;
 }
 
 export function RepositoryInfo({ 
@@ -25,7 +26,8 @@ export function RepositoryInfo({
   pullRequests,
   commitActivity,
   codeFrequency,
-  participation
+  participation,
+  compact = false
 }: RepositoryInfoProps) {
   // Calculate total language bytes for percentage calculation
   const totalLanguageBytes = Object.values(languages).reduce((sum, bytes) => sum + bytes, 0);
@@ -45,6 +47,176 @@ export function RepositoryInfo({
   const hasPullRequests = pullRequests && Array.isArray(pullRequests);
   const openPullRequests = hasPullRequests ? pullRequests.slice(0, 5) : [];
   
+  // Use a more compact layout when in compact mode
+  if (compact) {
+    return (
+      <div className="w-full">
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
+            <TabsTrigger value="branches" className="text-xs">
+              <GitBranch className="mr-1 h-3.5 w-3.5" />
+              Branches
+            </TabsTrigger>
+            <TabsTrigger value="contributors" className="text-xs">
+              <Users className="mr-1 h-3.5 w-3.5" />
+              Contributors
+            </TabsTrigger>
+            <TabsTrigger value="languages" className="text-xs">
+              <Code className="mr-1 h-3.5 w-3.5" />
+              Languages
+            </TabsTrigger>
+            <TabsTrigger value="stats" className="text-xs">
+              <BarChart3 className="mr-1 h-3.5 w-3.5" />
+              Stats
+            </TabsTrigger>
+            <TabsTrigger value="pullrequests" className="text-xs">
+              <GitPullRequest className="mr-1 h-3.5 w-3.5" />
+              PRs
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="overview" className="space-y-2 pt-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-xs font-medium mb-1">Repository Details</h3>
+                <div className="rounded-md border p-2">
+                  <div className="grid grid-cols-2 gap-1 text-xs">
+                    <div className="font-medium">Stars</div>
+                    <div>{repository.stargazers_count}</div>
+                    <div className="font-medium">Forks</div>
+                    <div>{repository.forks_count}</div>
+                    <div className="font-medium">Issues</div>
+                    <div>{repository.open_issues_count}</div>
+                    <div className="font-medium">Created</div>
+                    <div>{new Date(repository.created_at).toLocaleDateString()}</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-xs font-medium mb-1">Top Languages</h3>
+                <div className="rounded-md border p-2">
+                  {languageArray.slice(0, 3).map((language) => (
+                    <div key={language.name} className="mb-1">
+                      <div className="flex justify-between text-xs">
+                        <span>{language.name}</span>
+                        <span>{language.percentage}%</span>
+                      </div>
+                      <div className="mt-0.5 h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                        <div
+                          className="h-1.5 rounded-full bg-blue-500"
+                          style={{ width: `${language.percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="branches" className="space-y-2 pt-2">
+            <div className="rounded-md border divide-y max-h-40 overflow-auto">
+              {branches.slice(0, 5).map((branch) => (
+                <div key={branch.name} className="p-2 flex justify-between items-center text-xs">
+                  <div className="flex items-center">
+                    <GitBranch className="mr-1 h-3.5 w-3.5" />
+                    <span>{branch.name}</span>
+                  </div>
+                  {branch.protected && (
+                    <Badge variant="outline" className="text-xs h-5">Protected</Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="contributors" className="space-y-2 pt-2">
+            <div className="rounded-md border divide-y max-h-40 overflow-auto">
+              {contributors.slice(0, 5).map((contributor) => (
+                <div key={contributor.id} className="p-2 flex justify-between items-center text-xs">
+                  <div className="flex items-center">
+                    <img 
+                      src={contributor.avatar_url} 
+                      alt={contributor.login} 
+                      className="mr-1 h-5 w-5 rounded-full"
+                    />
+                    <span>{contributor.login}</span>
+                  </div>
+                  <Badge variant="secondary" className="text-xs h-5">{contributor.contributions}</Badge>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="languages" className="space-y-2 pt-2">
+            <div className="rounded-md border p-2 max-h-40 overflow-auto">
+              {languageArray.slice(0, 8).map((language) => (
+                <div key={language.name} className="mb-1">
+                  <div className="flex justify-between text-xs">
+                    <span>{language.name}</span>
+                    <span>{language.percentage}%</span>
+                  </div>
+                  <div className="mt-0.5 h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                    <div
+                      className="h-1.5 rounded-full bg-blue-500"
+                      style={{ width: `${language.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="stats" className="space-y-2 pt-2">
+            {hasCommitActivity ? (
+              <div className="rounded-md border p-2">
+                <h3 className="text-xs font-medium mb-1">Last 4 Weeks</h3>
+                <div className="grid grid-cols-4 gap-1">
+                  {lastFourWeeksActivity.map((week: any, index: number) => (
+                    <div key={index} className="border rounded-md text-center p-1">
+                      <div className="text-xs">Week {index + 1}</div>
+                      <div className="text-base font-semibold">{week.total}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-2 text-muted-foreground text-xs">
+                <Activity className="h-6 w-6 mx-auto mb-1 opacity-50" />
+                <p>No commit activity data</p>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="pullrequests" className="space-y-2 pt-2">
+            <div className="rounded-md border divide-y max-h-40 overflow-auto">
+              {hasPullRequests && openPullRequests.length > 0 ? (
+                openPullRequests.map((pr: any) => (
+                  <div key={pr.id} className="p-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <GitPullRequest className="mr-1 h-3.5 w-3.5 text-green-500" />
+                        <span className="truncate max-w-[200px]">{pr.title}</span>
+                      </div>
+                      <Badge className="text-xs h-5">#{pr.number}</Badge>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-2 text-center text-muted-foreground text-xs">
+                  No open pull requests
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    );
+  }
+  
+  // Original non-compact layout
   return (
     <Card>
       <CardHeader>

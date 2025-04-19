@@ -3,7 +3,7 @@
  */
 
 // Environment variables for GitHub API authentication
-export const GITHUB_API_KEY = process.env.GITHUB_API_KEY || '';
+export const GITHUB_API_KEY = process.env.GITHUB_API_KEY || process.env.NEXT_PUBLIC_GITHUB_API_KEY || '';
 export const GITHUB_BASE_URL = process.env.GITHUB_BASE_URL || 'https://api.github.com';
 
 // API endpoints

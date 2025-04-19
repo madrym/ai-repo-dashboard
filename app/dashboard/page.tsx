@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useCallback } from "react"
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -574,10 +574,22 @@ export default function DashboardPage() {
       repo = parts[1];
     }
   }
-  // You might have branch information elsewhere, e.g., in repositoryData.branches
-  // If so, update the `branch` variable accordingly.
-  // Example: if (repositoryData.branches?.[0]?.name) branch = repositoryData.branches[0].name;
+  // Determine branch (using first available or default)
+  branch = repositoryData.branches?.[0]?.name || 'main';
   // --- End extraction logic ---
+
+  // Handler for navigating to the dependencies page
+  const handleGoToDependencies = useCallback(() => {
+    if (org && repo && branch) {
+      const url = `/dependencies?org=${encodeURIComponent(org)}&repo=${encodeURIComponent(repo)}&branch=${encodeURIComponent(branch)}`;
+      console.log(`Navigating to dependencies page: ${url}`);
+      router.push(url);
+    } else {
+      console.error("Cannot navigate to dependencies: org, repo, or branch is missing.");
+      // Optionally show an error to the user
+      setError("Could not determine repository details to view dependencies.");
+    }
+  }, [org, repo, branch, router]);
 
   return (
     <div className="flex flex-col overflow-auto min-h-screen p-4 pb-16">
@@ -597,26 +609,24 @@ export default function DashboardPage() {
               View History
             </Link>
           </Button>
-          <Button variant="outline" asChild>
-            <Link href="/dependencies">
-              <svg
-                className="mr-2 h-4 w-4"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2" />
-                <path d="m6 17 3.13-5.78c.53-.97 1.53-1.58 2.61-1.79 1.08-.21 2.21.08 3.13.8L18 13.97" />
-                <path d="m9 12 3.13-5.78C12.66 5.22 13.66 4.6 14.74 4.4c1.08-.21 2.21.08 3.13.8L22 9.03" />
-              </svg>
-              Dependencies
-            </Link>
+          <Button variant="outline" onClick={handleGoToDependencies} disabled={!org || !repo || !branch}>
+            <svg
+              className="mr-2 h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2" />
+              <path d="m6 17 3.13-5.78c.53-.97 1.53-1.58 2.61-1.79 1.08-.21 2.21.08 3.13.8L18 13.97" />
+              <path d="m9 12 3.13-5.78C12.66 5.22 13.66 4.6 14.74 4.4c1.08-.21 2.21.08 3.13.8L22 9.03" />
+            </svg>
+            Dependencies
           </Button>
         </div>
       </div>

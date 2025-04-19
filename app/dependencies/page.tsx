@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
+import { useSearchParams, useRouter } from "next/navigation"
 import {
   ArrowLeft,
   Search,
@@ -30,126 +31,203 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
-// Mock data for dependency analysis
-const mockAnalysisData = {
-  lastUpdated: "2024-04-18T10:30:00Z",
-  totalFiles: 156,
-  totalDependencies: 423,
-  circularDependencies: 3,
-  unusedDependencies: 12,
-  tool: "DepCruise",
+// Define the type based on DependencyGraphProps['dependencyData']
+type DependencyGraphDataType = {
+  nodes: { id: string; label: string }[];
+  edges: { source: string; target: string; type: string }[];
+} | null;
+
+// Define type for the API response
+interface DependenciesApiResponse {
+  graphData: DependencyGraphDataType; // Use the type derived before
+  fileStructure: FileStructureItem[];
 }
 
-// Mock file structure for the repository
-const mockFileStructure = [
-  {
-    name: "app",
-    type: "directory",
-    children: [
-      {
-        name: "dashboard",
-        type: "directory",
-        children: [
-          { name: "page.tsx", type: "file", path: "app/dashboard/page.tsx" },
-          { name: "loading.tsx", type: "file", path: "app/dashboard/loading.tsx" },
-        ],
-      },
-      {
-        name: "dependencies",
-        type: "directory",
-        children: [
-          { name: "page.tsx", type: "file", path: "app/dependencies/page.tsx" },
-          { name: "loading.tsx", type: "file", path: "app/dependencies/loading.tsx" },
-        ],
-      },
-      { name: "layout.tsx", type: "file", path: "app/layout.tsx" },
-      { name: "page.tsx", type: "file", path: "app/page.tsx" },
-    ],
-  },
-  {
-    name: "components",
-    type: "directory",
-    children: [
-      {
-        name: "ui",
-        type: "directory",
-        children: [
-          { name: "button.tsx", type: "file", path: "components/ui/button.tsx" },
-          { name: "card.tsx", type: "file", path: "components/ui/card.tsx" },
-          { name: "input.tsx", type: "file", path: "components/ui/input.tsx" },
-          { name: "tabs.tsx", type: "file", path: "components/ui/tabs.tsx" },
-          { name: "badge.tsx", type: "file", path: "components/ui/badge.tsx" },
-        ],
-      },
-      { name: "dependency-graph.tsx", type: "file", path: "components/dependency-graph.tsx" },
-      { name: "dependency-details.tsx", type: "file", path: "components/dependency-details.tsx" },
-      { name: "theme-toggle.tsx", type: "file", path: "components/theme-toggle.tsx" },
-    ],
-  },
-  {
-    name: "lib",
-    type: "directory",
-    children: [{ name: "utils.ts", type: "file", path: "lib/utils.ts" }],
-  },
-  { name: "package.json", type: "file", path: "package.json" },
-  { name: "tsconfig.json", type: "file", path: "tsconfig.json" },
-]
+// Local definition
+interface FileStructureItem {
+  name: string;
+  type: 'directory' | 'file';
+  path: string; 
+  children?: FileStructureItem[];
+}
 
 export default function DependenciesPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [zoomLevel, setZoomLevel] = useState(1)
   const [showIndirectDeps, setShowIndirectDeps] = useState(false)
   const [depthLevel, setDepthLevel] = useState(1)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("files")
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(["app", "components"]))
-  const [filteredFiles, setFilteredFiles] = useState<any[]>([])
+  const [filteredFiles, setFilteredFiles] = useState<FileStructureItem[]>([])
+  const [fileStructure, setFileStructure] = useState<FileStructureItem[]>([])
+  const [dependencyGraph, setDependencyGraph] = useState<DependencyGraphDataType>(null)
+  const [analysisError, setAnalysisError] = useState<string | null>(null)
+  const [repoInfo, setRepoInfo] = useState<{
+    organization: string;
+    repository: string;
+    branch: string;
+  } | null>(null)
+  const [directDependencies, setDirectDependencies] = useState<string[]>([])
+  const [directDependents, setDirectDependents] = useState<string[]>([])
 
-  // Handle file search
+  // Get repository params from URL
+  const orgParam = searchParams.get('org')
+  const repoParam = searchParams.get('repo')
+  const branchParam = searchParams.get('branch')
+
+  // Fetch dependency graph data and file structure on load
+  useEffect(() => {
+    if (orgParam && repoParam && branchParam) {
+      setRepoInfo({ 
+          organization: orgParam, 
+          repository: repoParam, 
+          branch: branchParam 
+      });
+      
+      const fetchData = async () => {
+        setIsLoading(true);
+        setAnalysisError(null);
+        setDependencyGraph(null);
+        setFileStructure([]); // Clear previous structure
+        
+        const apiUrl = `/api/dependencies?org=${encodeURIComponent(orgParam)}&repo=${encodeURIComponent(repoParam)}&branch=${encodeURIComponent(branchParam)}`;
+        console.log(`[DependenciesPage] Fetching from: ${apiUrl}`);
+
+        try {
+          const response = await fetch(apiUrl);
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error("[DependenciesPage] API Error:", errorData);
+            let errorMessage = errorData.error || `HTTP error! status: ${response.status}`;
+            if (response.status === 404 && errorData.error?.includes("Repository not found on server")) {
+              errorMessage = "Repository clone not found on server. Ensure it's cloned at the expected location.";
+            } else if (errorData.details) {
+              errorMessage += ` (Details: ${errorData.details})`;
+            }
+            throw new Error(errorMessage);
+          }
+
+          // Expect combined data
+          const data: DependenciesApiResponse = await response.json(); 
+
+          if (!data || !data.graphData || !data.fileStructure) {
+            console.error("[DependenciesPage] API returned invalid data structure.");
+            throw new Error("Received invalid data structure from analysis API.");
+          }
+          
+          console.log(`[DependenciesPage] Received ${data.graphData.nodes.length} nodes, ${data.graphData.edges.length} edges.`);
+          console.log(`[DependenciesPage] Received ${data.fileStructure.length} top-level file structure items.`);
+          
+          setFileStructure(data.fileStructure); // Set the file structure state
+
+          if (data.graphData.nodes.length === 0) {
+             setAnalysisError("No dependencies found or repository might be empty/unsupported.");
+             setDependencyGraph({ nodes: [], edges: [] });
+          } else {
+             setDependencyGraph(data.graphData); // Set graph data
+             // Set initial selected file
+             if (!selectedFile && data.graphData.nodes.length > 0) {
+                const entryPoint = data.graphData.nodes.find(n => n.id.includes('page.') || n.id.includes('index.') || n.id.includes('main.') || n.id.includes('app.')) || data.graphData.nodes[0];
+                if (entryPoint) {
+                   setSelectedFile(entryPoint.id);
+                }
+             }
+          }
+          
+          toast({ title: "Analysis Complete", description: `Found ${data.graphData.nodes.length} files/modules.` });
+
+        } catch (err: any) {
+          console.error("Failed to fetch dependencies:", err);
+          const errorMsg = err.message || "An unknown error occurred during analysis.";
+          setAnalysisError(errorMsg);
+          setDependencyGraph(null);
+          setFileStructure([]); // Clear structure on error
+          toast({ title: "Analysis Failed", description: errorMsg, variant: "destructive" });
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchData();
+      
+      // Update mock file structure path for display consistency if needed (optional)
+      // This part is cosmetic and doesn't affect the actual analysis
+      const mockPathPrefix = `${orgParam}/${repoParam}/${branchParam}`;
+      setFileStructure([ /* Update mock structure paths if keeping it */ ]);
+
+    } else {
+      // Handle missing parameters - maybe redirect or show error
+      console.error("Missing org, repo, or branch parameters in URL");
+      setAnalysisError("Missing repository information in URL. Please navigate from the dashboard.");
+      setIsLoading(false);
+      setFileStructure([]); // Clear structure if params missing
+      // Optionally redirect back
+      // router.push('/dashboard'); 
+    }
+    // Only run on mount or when params change
+  }, [orgParam, repoParam, branchParam]); // Removed form, analyzeRepository dependencies
+
+  // Handle file search (now uses real fileStructure)
   useEffect(() => {
     if (!searchQuery) {
       setFilteredFiles([])
       return
     }
+    // Ensure fileStructure is populated before searching
+    if (fileStructure.length > 0) { 
+        const results = searchFiles(fileStructure, searchQuery.toLowerCase());
+        setFilteredFiles(results);
+    }
+  }, [searchQuery, fileStructure])
 
-    const results = searchFiles(mockFileStructure, searchQuery.toLowerCase())
-    setFilteredFiles(results)
-  }, [searchQuery])
-
-  // Recursive function to search through file structure
-  const searchFiles = (files: any[], query: string): any[] => {
-    let results: any[] = []
-
+  // Recursive function to search through file structure (now uses real data)
+  const searchFiles = (files: FileStructureItem[], query: string): FileStructureItem[] => {
+    let results: FileStructureItem[] = []
     files.forEach((file) => {
-      // Check if file name matches query
       if (file.name.toLowerCase().includes(query)) {
-        results.push(file)
+        // Ensure we push items matching the expected type
+        results.push(file); 
       }
-
-      // If it's a directory, search its children
       if (file.type === "directory" && file.children) {
         const childResults = searchFiles(file.children, query)
         results = [...results, ...childResults]
       }
     })
-
     return results
   }
 
-  // Handle refresh of dependency data
-  const handleRefreshData = () => {
-    setIsLoading(true)
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      toast({
-        title: "Dependency graph updated",
-        description: "The dependency graph has been refreshed with the latest data.",
-      })
-    }, 2000)
-  }
+  // Handle refresh: re-trigger the data fetch
+  const handleRefreshData = useCallback(() => {
+    if (orgParam && repoParam && branchParam) {
+       // Re-run the fetch logic (could extract fetchData outside useEffect)
+       const fetchData = async () => { 
+         setIsLoading(true);
+         setAnalysisError(null);
+         setDependencyGraph(null);
+         setFileStructure([]); // Clear previous structure
+          const apiUrl = `/api/dependencies?org=${encodeURIComponent(orgParam)}&repo=${encodeURIComponent(repoParam)}&branch=${encodeURIComponent(branchParam)}`;
+          try {
+              const response = await fetch(apiUrl);
+              if (!response.ok) { throw new Error("Failed to fetch"); }
+              const data: DependenciesApiResponse = await response.json();
+              if (!data || !data.graphData || !data.fileStructure) { throw new Error("Invalid data"); }
+              setFileStructure(data.fileStructure);
+              setDependencyGraph(data.graphData);
+              // Reset selected file? Maybe keep it if it still exists?
+              toast({ title: "Refreshed", description: "Analysis data reloaded." });
+          } catch (err: any) { /* handle error */ }
+           finally { setIsLoading(false); }
+       }; 
+       fetchData();
+    } else {
+       toast({ title: "Cannot Refresh", description: "Repository parameters missing.", variant: "destructive" });
+    }
+  }, [orgParam, repoParam, branchParam]);
 
   // Handle download of dependency data
   const handleDownloadData = () => {
@@ -202,8 +280,8 @@ export default function DependenciesPage() {
     setExpandedFolders(newExpanded)
   }
 
-  // Render file structure recursively
-  const renderFileStructure = (items: any[], basePath = "", level = 0) => {
+  // Render file structure recursively (Update parameter type)
+  const renderFileStructure = (items: FileStructureItem[], basePath = "", level = 0) => {
     return items.map((item) => {
       const currentPath = basePath ? `${basePath}/${item.name}` : item.name
 
@@ -228,7 +306,7 @@ export default function DependenciesPage() {
       } else {
         return (
           <div
-            key={currentPath}
+            key={item.path}
             className={cn(
               "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted",
               selectedFile === item.path && "bg-muted font-medium",
@@ -244,7 +322,7 @@ export default function DependenciesPage() {
     })
   }
 
-  // Render search results
+  // Render search results (Update parameter type if needed, ensure onClick uses item.path)
   const renderSearchResults = () => {
     if (filteredFiles.length === 0) {
       return (
@@ -254,31 +332,74 @@ export default function DependenciesPage() {
       )
     }
 
-    return filteredFiles.map((file) => (
+    return filteredFiles.map((file: FileStructureItem) => (
       <div
-        key={file.path || file.name}
+        key={file.path}
         className={cn(
           "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted",
           selectedFile === file.path && "bg-muted font-medium",
         )}
-        onClick={() => file.path && setSelectedFile(file.path)}
+        onClick={() => setSelectedFile(file.path)}
       >
         <FileCode className="h-4 w-4 text-muted-foreground" />
-        <span>{file.path || file.name}</span>
+        <span>{file.path}</span>
       </div>
     ))
   }
+
+  // Calculate dependencies and dependents when selection changes
+  useEffect(() => {
+    if (selectedFile && dependencyGraph?.edges && dependencyGraph?.nodes) { // Check nodes exist too
+      const deps = dependencyGraph.edges
+        .filter(edge => edge.source === selectedFile)
+        .map(edge => edge.target)
+        // Remove the coreModule filter as it's not available on the simplified node type
+        .filter(target => target && !target.includes('node_modules')); 
+        
+      const dependents = dependencyGraph.edges
+        .filter(edge => edge.target === selectedFile)
+        .map(edge => edge.source);
+        
+      // Remove duplicates and sort
+      setDirectDependencies([...new Set(deps)].sort());
+      setDirectDependents([...new Set(dependents)].sort());
+    } else {
+      setDirectDependencies([]);
+      setDirectDependents([]);
+    }
+  }, [selectedFile, dependencyGraph]);
 
   return (
     <div className="container py-6">
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/dashboard">
+            <Link href={
+              repoInfo && repoInfo.organization && repoInfo.repository 
+                ? `/dashboard?repo=${encodeURIComponent(`${repoInfo.organization}/${repoInfo.repository}`)}`
+                : "/dashboard"
+            }>
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold">Repository Dependency Graph</h1>
+          <div>
+            <h1 className="text-2xl font-bold">Repository Dependency Graph</h1>
+            {repoInfo && repoInfo.organization && (
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <span className="font-medium">{repoInfo.organization}</span>
+                <span>/</span>
+                <span className="font-medium">{repoInfo.repository}</span>
+                {repoInfo.branch && (
+                  <>
+                    <span>:</span>
+                    <Badge variant="outline" className="ml-1 px-1 py-0 h-5">
+                      {repoInfo.branch}
+                    </Badge>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -312,176 +433,67 @@ export default function DependenciesPage() {
       <div className="grid gap-6 md:grid-cols-3">
         <div className="md:col-span-1">
           <Card className="h-full">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-              <CardHeader className="border-b px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <TabsList>
-                    <TabsTrigger value="files">Files</TabsTrigger>
-                    <TabsTrigger value="popular">Popular</TabsTrigger>
-                    <TabsTrigger value="recent">Recent</TabsTrigger>
-                  </TabsList>
+            <CardHeader className="border-b px-4 py-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Files</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="border-b p-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search files..."
+                    className="pl-8 pr-8"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="border-b p-2">
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search files..."
-                      className="pl-8 pr-8"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery("")}
-                        className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
+              </div>
 
-                <ScrollArea className="h-[calc(100vh-300px)]">
-                  <div className="p-2">
-                    <TabsContent value="files" className="m-0 p-0">
-                      {searchQuery ? renderSearchResults() : renderFileStructure(mockFileStructure)}
-                    </TabsContent>
-                    <TabsContent value="popular" className="m-0 p-0">
-                      <div className="space-y-1">
-                        <div
-                          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-                          onClick={() => setSelectedFile("components/ui/button.tsx")}
-                        >
-                          <FileCode className="h-4 w-4 text-muted-foreground" />
-                          <span>components/ui/button.tsx</span>
-                          <Badge className="ml-auto" variant="outline">
-                            42 deps
-                          </Badge>
-                        </div>
-                        <div
-                          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-                          onClick={() => setSelectedFile("app/layout.tsx")}
-                        >
-                          <FileCode className="h-4 w-4 text-muted-foreground" />
-                          <span>app/layout.tsx</span>
-                          <Badge className="ml-auto" variant="outline">
-                            38 deps
-                          </Badge>
-                        </div>
-                        <div
-                          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-                          onClick={() => setSelectedFile("lib/utils.ts")}
-                        >
-                          <FileCode className="h-4 w-4 text-muted-foreground" />
-                          <span>lib/utils.ts</span>
-                          <Badge className="ml-auto" variant="outline">
-                            29 deps
-                          </Badge>
-                        </div>
-                        <div
-                          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-                          onClick={() => setSelectedFile("components/ui/card.tsx")}
-                        >
-                          <FileCode className="h-4 w-4 text-muted-foreground" />
-                          <span>components/ui/card.tsx</span>
-                          <Badge className="ml-auto" variant="outline">
-                            24 deps
-                          </Badge>
-                        </div>
-                        <div
-                          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-                          onClick={() => setSelectedFile("app/dashboard/page.tsx")}
-                        >
-                          <FileCode className="h-4 w-4 text-muted-foreground" />
-                          <span>app/dashboard/page.tsx</span>
-                          <Badge className="ml-auto" variant="outline">
-                            21 deps
-                          </Badge>
-                        </div>
-                      </div>
-                    </TabsContent>
-                    <TabsContent value="recent" className="m-0 p-0">
-                      <div className="space-y-1">
-                        <div
-                          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-                          onClick={() => setSelectedFile("app/dependencies/page.tsx")}
-                        >
-                          <FileCode className="h-4 w-4 text-muted-foreground" />
-                          <span>app/dependencies/page.tsx</span>
-                          <Badge className="ml-auto" variant="secondary">
-                            Just now
-                          </Badge>
-                        </div>
-                        <div
-                          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-                          onClick={() => setSelectedFile("components/dependency-graph.tsx")}
-                        >
-                          <FileCode className="h-4 w-4 text-muted-foreground" />
-                          <span>components/dependency-graph.tsx</span>
-                          <Badge className="ml-auto" variant="secondary">
-                            5m ago
-                          </Badge>
-                        </div>
-                        <div
-                          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-                          onClick={() => setSelectedFile("components/ui/tabs.tsx")}
-                        >
-                          <FileCode className="h-4 w-4 text-muted-foreground" />
-                          <span>components/ui/tabs.tsx</span>
-                          <Badge className="ml-auto" variant="secondary">
-                            1h ago
-                          </Badge>
-                        </div>
-                        <div
-                          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-                          onClick={() => setSelectedFile("app/dashboard/page.tsx")}
-                        >
-                          <FileCode className="h-4 w-4 text-muted-foreground" />
-                          <span>app/dashboard/page.tsx</span>
-                          <Badge className="ml-auto" variant="secondary">
-                            3h ago
-                          </Badge>
-                        </div>
-                        <div
-                          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-                          onClick={() => setSelectedFile("lib/utils.ts")}
-                        >
-                          <FileCode className="h-4 w-4 text-muted-foreground" />
-                          <span>lib/utils.ts</span>
-                          <Badge className="ml-auto" variant="secondary">
-                            Yesterday
-                          </Badge>
-                        </div>
-                      </div>
-                    </TabsContent>
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Tabs>
+              <ScrollArea className="h-[calc(100vh-300px)]">
+                <div className="p-2">
+                  {searchQuery ? renderSearchResults() : renderFileStructure(fileStructure)}
+                </div>
+              </ScrollArea>
+            </CardContent>
           </Card>
         </div>
 
         <div className="md:col-span-2">
-          {!selectedFile ? (
-            <Card className="h-full flex items-center justify-center">
+          {isLoading ? (
+            <Card className="h-full flex items-center justify-center min-h-[600px]">
               <div className="text-center p-6">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                  <Info className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <h3 className="mb-2 text-lg font-medium">Select a file to view dependencies</h3>
-                <p className="mb-6 text-sm text-muted-foreground">
-                  Choose a file from the file explorer to visualize its dependencies and dependents.
+                <RefreshCw className="mx-auto h-12 w-12 animate-spin text-muted-foreground mb-4" />
+                <h3 className="mb-2 text-lg font-medium">Loading Dependencies...</h3>
+                <p className="text-sm text-muted-foreground">
+                  Please wait while the repository analysis completes.
                 </p>
-                <div className="flex flex-col gap-2 sm:flex-row sm:gap-4 justify-center">
-                  <Button variant="outline" onClick={() => setActiveTab("popular")}>
-                    View popular files
-                  </Button>
-                  <Button variant="outline" onClick={() => setActiveTab("recent")}>
-                    View recent files
-                  </Button>
-                </div>
+              </div>
+            </Card>
+          ) : analysisError ? (
+            <Card className="h-full flex items-center justify-center min-h-[600px]">
+              <div className="text-center p-6">
+                <X className="mx-auto h-12 w-12 text-destructive mb-4" />
+                <h3 className="mb-2 text-lg font-medium text-destructive">Analysis Failed</h3>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">{analysisError}</p>
+                <Button variant="outline" size="sm" onClick={handleRefreshData} className="mt-4">
+                  Retry Analysis
+                </Button>
+              </div>
+            </Card>
+          ) : !selectedFile || !dependencyGraph ? (
+            <Card className="h-full flex items-center justify-center min-h-[600px]">
+              <div className="text-center p-6">
+                <h3 className="mb-2 text-lg font-medium">Select a file to view dependencies</h3>
               </div>
             </Card>
           ) : (
@@ -586,156 +598,63 @@ export default function DependenciesPage() {
                     showIndirectDeps={showIndirectDeps}
                     zoomLevel={zoomLevel}
                     onNodeSelect={setSelectedFile}
+                    dependencyData={dependencyGraph}
                   />
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-4">
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Card>
                     <CardHeader className="p-3">
-                      <CardTitle className="text-sm">Dependencies</CardTitle>
+                      <CardTitle className="text-sm">Dependencies ({directDependencies.length})</CardTitle>
                       <CardDescription className="text-xs">Files this component imports</CardDescription>
                     </CardHeader>
                     <CardContent className="p-0">
                       <ScrollArea className="h-[200px]">
                         <div className="p-3 space-y-1">
-                          {/* Mock dependencies */}
-                          {selectedFile === "app/dependencies/page.tsx" && (
-                            <>
+                          {directDependencies.length > 0 ? (
+                            directDependencies.map(dep => (
                               <div
-                                className="flex items-center justify-between text-sm py-1 hover:bg-muted rounded px-1 cursor-pointer"
-                                onClick={() => setSelectedFile("components/dependency-graph.tsx")}
+                                key={dep}
+                                className="flex items-center justify-between text-sm py-1 hover:bg-muted rounded px-1 cursor-pointer truncate"
+                                onClick={() => setSelectedFile(dep)} // Make clickable
+                                title={dep} // Show full path on hover
                               >
-                                <span className="truncate">components/dependency-graph.tsx</span>
-                                <Badge variant="outline" className="ml-2">
-                                  Direct
-                                </Badge>
+                                <span className="truncate">{dep}</span>
+                                {/* Optional: Add badge if needed */}
                               </div>
-                              <div
-                                className="flex items-center justify-between text-sm py-1 hover:bg-muted rounded px-1 cursor-pointer"
-                                onClick={() => setSelectedFile("components/ui/card.tsx")}
-                              >
-                                <span className="truncate">components/ui/card.tsx</span>
-                                <Badge variant="outline" className="ml-2">
-                                  Direct
-                                </Badge>
-                              </div>
-                              <div
-                                className="flex items-center justify-between text-sm py-1 hover:bg-muted rounded px-1 cursor-pointer"
-                                onClick={() => setSelectedFile("components/ui/button.tsx")}
-                              >
-                                <span className="truncate">components/ui/button.tsx</span>
-                                <Badge variant="outline" className="ml-2">
-                                  Direct
-                                </Badge>
-                              </div>
-                              <div
-                                className="flex items-center justify-between text-sm py-1 hover:bg-muted rounded px-1 cursor-pointer"
-                                onClick={() => setSelectedFile("components/ui/tabs.tsx")}
-                              >
-                                <span className="truncate">components/ui/tabs.tsx</span>
-                                <Badge variant="outline" className="ml-2">
-                                  Direct
-                                </Badge>
-                              </div>
-                              <div
-                                className="flex items-center justify-between text-sm py-1 hover:bg-muted rounded px-1 cursor-pointer"
-                                onClick={() => setSelectedFile("lib/utils.ts")}
-                              >
-                                <span className="truncate">lib/utils.ts</span>
-                                <Badge variant="outline" className="ml-2">
-                                  Direct
-                                </Badge>
-                              </div>
-                            </>
+                            ))
+                          ) : (
+                            <div className="flex items-center justify-center h-20 text-sm text-muted-foreground">
+                              No direct dependencies found.
+                            </div>
                           )}
-                          {selectedFile === "components/dependency-graph.tsx" && (
-                            <>
-                              <div
-                                className="flex items-center justify-between text-sm py-1 hover:bg-muted rounded px-1 cursor-pointer"
-                                onClick={() => setSelectedFile("lib/utils.ts")}
-                              >
-                                <span className="truncate">lib/utils.ts</span>
-                                <Badge variant="outline" className="ml-2">
-                                  Direct
-                                </Badge>
-                              </div>
-                              <div
-                                className="flex items-center justify-between text-sm py-1 hover:bg-muted rounded px-1 cursor-pointer"
-                                onClick={() => setSelectedFile("components/ui/button.tsx")}
-                              >
-                                <span className="truncate">components/ui/button.tsx</span>
-                                <Badge variant="outline" className="ml-2">
-                                  Direct
-                                </Badge>
-                              </div>
-                            </>
-                          )}
-                          {selectedFile !== "app/dependencies/page.tsx" &&
-                            selectedFile !== "components/dependency-graph.tsx" && (
-                              <div className="flex items-center justify-center h-20 text-sm text-muted-foreground">
-                                {Math.random() > 0.5 ? "No dependencies found" : "Loading dependencies..."}
-                              </div>
-                            )}
                         </div>
                       </ScrollArea>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardHeader className="p-3">
-                      <CardTitle className="text-sm">Dependents</CardTitle>
+                      <CardTitle className="text-sm">Dependents ({directDependents.length})</CardTitle>
                       <CardDescription className="text-xs">Files that import this component</CardDescription>
                     </CardHeader>
                     <CardContent className="p-0">
                       <ScrollArea className="h-[200px]">
                         <div className="p-3 space-y-1">
-                          {/* Mock dependents */}
-                          {selectedFile === "components/dependency-graph.tsx" && (
-                            <>
+                          {directDependents.length > 0 ? (
+                            directDependents.map(dep => (
                               <div
-                                className="flex items-center justify-between text-sm py-1 hover:bg-muted rounded px-1 cursor-pointer"
-                                onClick={() => setSelectedFile("app/dependencies/page.tsx")}
+                                key={dep}
+                                className="flex items-center justify-between text-sm py-1 hover:bg-muted rounded px-1 cursor-pointer truncate"
+                                onClick={() => setSelectedFile(dep)} // Make clickable
+                                title={dep} // Show full path on hover
                               >
-                                <span className="truncate">app/dependencies/page.tsx</span>
-                                <Badge variant="outline" className="ml-2">
-                                  Direct
-                                </Badge>
+                                <span className="truncate">{dep}</span>
+                                {/* Optional: Add badge if needed */}
                               </div>
-                            </>
-                          )}
-                          {selectedFile === "lib/utils.ts" && (
-                            <>
-                              <div
-                                className="flex items-center justify-between text-sm py-1 hover:bg-muted rounded px-1 cursor-pointer"
-                                onClick={() => setSelectedFile("app/dependencies/page.tsx")}
-                              >
-                                <span className="truncate">app/dependencies/page.tsx</span>
-                                <Badge variant="outline" className="ml-2">
-                                  Direct
-                                </Badge>
-                              </div>
-                              <div
-                                className="flex items-center justify-between text-sm py-1 hover:bg-muted rounded px-1 cursor-pointer"
-                                onClick={() => setSelectedFile("components/dependency-graph.tsx")}
-                              >
-                                <span className="truncate">components/dependency-graph.tsx</span>
-                                <Badge variant="outline" className="ml-2">
-                                  Direct
-                                </Badge>
-                              </div>
-                              <div
-                                className="flex items-center justify-between text-sm py-1 hover:bg-muted rounded px-1 cursor-pointer"
-                                onClick={() => setSelectedFile("components/ui/button.tsx")}
-                              >
-                                <span className="truncate">components/ui/button.tsx</span>
-                                <Badge variant="outline" className="ml-2">
-                                  Direct
-                                </Badge>
-                              </div>
-                            </>
-                          )}
-                          {selectedFile !== "components/dependency-graph.tsx" && selectedFile !== "lib/utils.ts" && (
+                            ))
+                          ) : (
                             <div className="flex items-center justify-center h-20 text-sm text-muted-foreground">
-                              {Math.random() > 0.5 ? "No dependents found" : "Loading dependents..."}
+                              No direct dependents found.
                             </div>
                           )}
                         </div>

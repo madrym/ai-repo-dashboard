@@ -10,6 +10,10 @@ interface DependencyGraphProps {
   showIndirectDeps: boolean
   zoomLevel: number
   onNodeSelect: (nodeId: string) => void
+  dependencyData?: {
+    nodes: { id: string; label: string }[];
+    edges: { source: string; target: string; type: string }[];
+  } | null;
 }
 
 interface Node {
@@ -38,15 +42,108 @@ export function DependencyGraph({
   showIndirectDeps,
   zoomLevel,
   onNodeSelect,
+  dependencyData = null,
 }: DependencyGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [graphData, setGraphData] = useState<GraphData | null>(null)
 
-  // Generate mock data for the graph based on the selected file
+  // Generate graph data based on dependency data or mock data
   useEffect(() => {
     setIsLoading(true)
 
+    // If we have real dependency data, use it
+    if (dependencyData) {
+      processDependencyData();
+    } else {
+      // Otherwise use mock data (for backward compatibility)
+      generateMockData();
+    }
+  }, [filePath, depthLevel, showIndirectDeps, dependencyData]);
+
+  // Process real dependency data
+  const processDependencyData = () => {
+    if (!dependencyData) return;
+    
+    const nodes: Node[] = [];
+    const links: Link[] = [];
+    
+    // Filter the dependency graph to show only nodes connected to the selected file
+    // and limited by depth level
+    const relevantNodeIds = new Set<string>();
+    const nodeDepths = new Map<string, number>();
+    
+    // Add the root node (selected file)
+    relevantNodeIds.add(filePath);
+    nodeDepths.set(filePath, 0);
+    
+    // Helper function to traverse graph up to max depth
+    const traverseGraph = (startId: string, currentDepth: number, isOutgoing: boolean) => {
+      if (currentDepth >= depthLevel) return;
+      
+      // Find connected nodes
+      dependencyData.edges.forEach(edge => {
+        const sourceId = edge.source;
+        const targetId = edge.target;
+        
+        if (isOutgoing && sourceId === startId) {
+          // This is a dependency (outgoing edge)
+          relevantNodeIds.add(targetId);
+          const newDepth = nodeDepths.get(targetId) ?? currentDepth + 1;
+          nodeDepths.set(targetId, Math.min(newDepth, currentDepth + 1));
+          traverseGraph(targetId, currentDepth + 1, isOutgoing);
+        } else if (!isOutgoing && targetId === startId) {
+          // This is a dependent (incoming edge)
+          relevantNodeIds.add(sourceId);
+          const newDepth = nodeDepths.get(sourceId) ?? currentDepth + 1;
+          nodeDepths.set(sourceId, Math.min(newDepth, currentDepth + 1));
+          traverseGraph(sourceId, currentDepth + 1, isOutgoing);
+        }
+      });
+    };
+    
+    // Traverse dependencies (outgoing edges)
+    traverseGraph(filePath, 0, true);
+    // Traverse dependents (incoming edges)
+    traverseGraph(filePath, 0, false);
+    
+    // Add nodes
+    Array.from(relevantNodeIds).forEach(id => {
+      const depth = nodeDepths.get(id) || 0;
+      nodes.push({
+        id,
+        group: id === filePath ? 0 : (depth % 4) + 1,
+        type: getFileType(id),
+        level: depth,
+        isRoot: id === filePath,
+      });
+    });
+    
+    // Add edges that connect nodes in our filtered set
+    dependencyData.edges.forEach(edge => {
+      if (relevantNodeIds.has(edge.source) && relevantNodeIds.has(edge.target)) {
+        // Only include if both nodes are in our filtered set
+        if (!showIndirectDeps && 
+            (nodeDepths.get(edge.source) || 0) > 1 && 
+            (nodeDepths.get(edge.target) || 0) > 1) {
+          return; // Skip indirect dependencies if not showing them
+        }
+        
+        links.push({
+          source: edge.source,
+          target: edge.target,
+          value: 1,
+          type: edge.type || "dependency",
+        });
+      }
+    });
+    
+    setGraphData({ nodes, links });
+    setIsLoading(false);
+  };
+
+  // Generate mock data (fallback for backward compatibility)
+  const generateMockData = () => {
     // Simulate API call to get dependency data
     setTimeout(() => {
       // Generate mock dependency graph for the selected file
@@ -151,7 +248,7 @@ export function DependencyGraph({
       setGraphData({ nodes, links })
       setIsLoading(false)
     }, 1000)
-  }, [filePath, depthLevel, showIndirectDeps])
+  }
 
   // Render the graph
   useEffect(() => {

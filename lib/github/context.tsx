@@ -404,55 +404,90 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
     if (!repositories[repoFullName]) {
       throw new Error('Repository not connected');
     }
-    
+
     try {
-      // If we already have repomix content and summary, return existing data
-      if (repositories[repoFullName].repomixContent && repositories[repoFullName].repomixSummary) {
-        console.log("Using cached repomix data - preventing redundant API calls");
+      // If we already have repomix summary, return existing data
+      // Keep the repomixContent check for now, might be used elsewhere
+      if (repositories[repoFullName].repomixSummary) {
+        console.log("Using cached repomix summary data - preventing redundant API calls");
         return repositories[repoFullName].repomixSummary;
       }
-      
+
       setIsLoading(true);
-      
+
       // If repository is not available locally, throw error
       if (!repositories[repoFullName].isLocal) {
-        throw new Error('Repository not available locally');
+        // Allow fetching summary even if not local, as the file might exist from a previous clone
+        console.warn('Repository not available locally, but attempting to fetch repomix summary.');
+        // throw new Error('Repository not available locally'); 
       }
-      
+
       const [owner, repo] = repoFullName.split('/');
       const branch = repositories[repoFullName].repository.default_branch || 'main';
-      
-      // Get the summary
-      const response = await fetch(`/api/repositories/repomix?owner=${owner}&repo=${repo}&branch=${branch}`);
-      
+
+      // Get the summary using the repomix-summary endpoint (POST)
+      console.log(`Fetching repomix summary from /api/repositories/repomix-summary for ${owner}/${repo}/${branch}`);
+      const response = await fetch('/api/repositories/repomix-summary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ owner, repo, branch }),
+      });
+
       if (!response.ok) {
+        // Handle 404 specifically - summary file not found
+        if (response.status === 404) {
+            console.log(`Repomix summary file not found for ${owner}/${repo}/${branch}.`);
+            // Set summary to null or an empty object to indicate it's not available
+            setRepositories(prev => ({
+                ...prev,
+                [repoFullName]: {
+                  ...prev[repoFullName],
+                  repomixSummary: null, // Indicate summary not found
+                }
+            }));
+            return null; // Return null or handle as needed in the UI
+        }
+        // Handle other errors
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to get repomix summary');
+        console.error(`Error fetching repomix summary (${response.status}):`, errorData.error);
+        throw new Error(errorData.error || `Failed to get repomix summary (${response.status})`);
       }
+
+      // Parse the response which contains { summary: ... }
+      const responseData = await response.json();
+      const summaryData = responseData.summary; // Extract the summary object
       
-      const data = await response.json();
-      
-      // Get the raw XML content
+      console.log("Successfully fetched and parsed repomix summary:", !!summaryData);
+
+
+      // Get the raw XML content (keep this fetch for now, might be used by AIAnalysis or other components)
+      console.log(`Fetching raw repomix content from /api/repositories/repomix-xml for ${owner}/${repo}/${branch}`);
       const xmlResponse = await fetch(`/api/repositories/repomix-xml?owner=${owner}&repo=${repo}&branch=${branch}`);
-      
+
       let xmlContent = '';
       if (xmlResponse.ok) {
         xmlContent = await xmlResponse.text();
+        console.log("Successfully fetched raw repomix content, length:", xmlContent.length);
+      } else {
+         console.warn(`Failed to fetch raw repomix content (${xmlResponse.status})`);
       }
-      
+
       // Update repository data with repomix summary and content
       setRepositories(prev => ({
         ...prev,
         [repoFullName]: {
           ...prev[repoFullName],
-          repomixSummary: data,
+          repomixSummary: summaryData, // Store the extracted summary object
           repomixContent: xmlContent
         }
       }));
-      
-      return data;
+
+      return summaryData; // Return the extracted summary object
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to get repomix summary';
+      console.error('Error generating repomix summary:', errorMessage);
       setError(errorMessage);
       throw err;
     } finally {

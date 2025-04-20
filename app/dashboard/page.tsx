@@ -132,7 +132,7 @@ export default function DashboardPage() {
   } = useRepository()
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [selectedFileContent, setSelectedFileContent] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<"code" | "docs" | "ai">("code")
+  const [activeTab, setActiveTab] = useState<"docs" | "ai" | "explorer">("docs")
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearching, setIsSearching] = useState(false)
   const [searchResults, setSearchResults] = useState<any[]>([])
@@ -318,39 +318,46 @@ export default function DashboardPage() {
 
   // Helper function to find a file in the structure by its path/name
   const findFileByPath = (files: any[], path: string): any => {
-    // Normalize path by removing leading slashes and directory prefixes
-    const normalizedPath = normalizeFilePath(path);
-    
+    // Normalize the target path once
+    const normalizedPath = normalizeFilePath(path); 
+
     for (const file of files) {
-      // Check for direct path match
-      if (file.path === normalizedPath || file.path === path) {
+      // Normalize the path from the structure *for comparison*
+      const fileNormalizedPath = file.path ? normalizeFilePath(file.path) : normalizeFilePath(file.name);
+
+      // Compare normalized paths
+      if (fileNormalizedPath === normalizedPath) {
+        console.log(`[findFileByPath] Found direct match: ${file.path}`);
         return file;
       }
-      
-      // Check if file path ends with the normalized path
-      if (file.path && file.path.endsWith(normalizedPath)) {
-        return file;
+
+      // Check if file path ends with the normalized path (also compare normalized)
+      if (file.path && fileNormalizedPath.endsWith(normalizedPath)) {
+         console.log(`[findFileByPath] Found suffix match: ${file.path}`);
+         return file;
       }
-      
-      // Check if the path ends with the file name
-      if (normalizedPath.endsWith(file.name)) {
-        return file;
-      }
-      
-      // Recursive search in children
+
+      // Check if the path ends with the file name (less reliable, keep as fallback?)
+      // if (normalizedPath.endsWith(file.name)) {
+      //    console.log(`[findFileByPath] Found name suffix match: ${file.name}`);
+      //    return file;
+      // }
+
+      // Recursive search in children - Pass the ORIGINAL path
       if (file.type === "directory" && file.children) {
-        const found = findFileByPath(file.children, normalizedPath);
+        const found = findFileByPath(file.children, path); // Pass original path
         if (found) {
           return found;
         }
       }
     }
-    
-    // If not found in the filtered structure, try searching the full structure
-    if (files !== fileStructure) {
-      return findFileByPath(fileStructure, path);
-    }
-    
+
+    // Remove the fallback search logic that likely caused the loop
+    // if (files !== fileStructure) {
+    //   return findFileByPath(fileStructure, path);
+    // }
+
+    // If not found in this branch, return null
     return null;
   };
 
@@ -636,7 +643,7 @@ export default function DashboardPage() {
         {repositoryData && (
           <Card>
             <CardHeader className="py-3">
-              <CardTitle>Repository Overview</CardTitle>
+              <CardTitle>Overview</CardTitle>
             </CardHeader>
             <CardContent className="pb-3">
               <RepositoryInfo 
@@ -655,205 +662,181 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Repository AI Summary - Full Width - Moved down and increased height */}
+      {/* Repository AI Summary Card - Modify Tabs Here */}
       <div className="mb-4">
-        <Card>
-          <CardHeader className="py-3">
-            <CardTitle>Repository AI Summary</CardTitle>
-            <CardDescription>Generated from repomix-output.xml</CardDescription>
-          </CardHeader>
-          <CardContent className="max-h-[500px] overflow-auto pb-3">
-            <Tabs defaultValue="docs" className="w-full">
-              <TabsList className="mb-4">
-                <TabsTrigger value="docs">
-                  <FileText className="mr-1 h-3.5 w-3.5" />
-                  Docs
-                </TabsTrigger>
-                <TabsTrigger value="ai">
-                  <Brain className="mr-1 h-3.5 w-3.5" />
-                  AI
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="docs">
-                <RepoSummary 
-                  repository={repositoryData?.repository} 
-                  summary={repoData.summary}
-                  repomixSummary={repositoryData?.repomixSummary}
-                  onSelectFile={handleFileSelect}
-                  onRefreshSummary={handleRefreshSummary}
-                />
-              </TabsContent>
-              <TabsContent value="ai">
-                <AIAnalysis 
-                  org={org}
-                  repo={repo}
-                  branch={branch}
-                  repositoryName={currentRepository || undefined}
-                />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* File Explorer section adjustment to account for larger summary */}
-      <div className="flex-grow flex flex-col mb-8">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-lg font-semibold">
-            {getCodeFolderName(fileStructure.length > 0 ? fileStructure : repoData.structure)} Directory
-          </h2>
-          {selectedFile && (
-            <Badge variant="outline" className="text-xs">
-              <FileCode className="h-3.5 w-3.5 mr-1" />
-              {selectedFile}
-            </Badge>
-          )}
-        </div>
-        <div className="flex-grow" style={{ height: "calc(100vh - 560px)", minHeight: "500px" }}>
-          <ResizablePanelGroup direction="horizontal" className="h-full border rounded-md">
-            <ResizablePanel defaultSize={20} minSize={15}>
-              <div className="flex h-full flex-col overflow-hidden">
-                <div className="border-b p-2">
-                  <div className="relative">
-                    <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="search"
-                      placeholder={`Search ${getCodeFolderName(fileStructure.length > 0 ? fileStructure : repoData.structure)}...`}
-                      className="w-full pl-8"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={clearSearch}
-                        className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="overflow-auto flex-grow">
-                  {searchQuery ? (
-                    <SearchResults 
-                      results={searchResults} 
-                      onSelectFile={handleFileSelect} 
-                      isSearching={isSearching}
-                      query={searchQuery}
-                      selectedFile={selectedFile}
-                    />
-                  ) : (
-                    isLoadingFiles ? (
-                      <div className="flex h-full items-center justify-center">
-                        <div className="text-center">
-                          <div className="animate-spin mb-2 h-8 w-8 mx-auto border-2 border-primary border-t-transparent rounded-full" />
-                          <p className="text-sm text-muted-foreground">Loading files...</p>
-                        </div>
+         <Card>
+           <CardHeader className="py-3">
+             <CardTitle>Repository AI Summary</CardTitle>
+             <CardDescription>Generated from repomix-output.xml</CardDescription>
+           </CardHeader>
+           <CardContent className="pb-3">
+             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="docs">
+                     <FileText className="mr-1 h-3.5 w-3.5" />
+                     Docs
+                  </TabsTrigger>
+                  <TabsTrigger value="ai">
+                     <Brain className="mr-1 h-3.5 w-3.5" />
+                     AI
+                  </TabsTrigger>
+                  <TabsTrigger value="explorer">
+                     <FileCode className="mr-1 h-3.5 w-3.5" />
+                     Explorer
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="docs">
+                   <RepoSummary 
+                      repository={repositoryData?.repository} 
+                      summary={repoData.summary}
+                      repomixSummary={repositoryData?.repomixSummary}
+                      onSelectFile={handleFileSelect}
+                      onRefreshSummary={handleRefreshSummary}
+                   />
+                </TabsContent>
+                <TabsContent value="ai">
+                   <AIAnalysis 
+                     org={org}
+                     repo={repo}
+                     branch={branch}
+                     repositoryName={currentRepository || undefined}
+                   />
+                </TabsContent>
+                <TabsContent value="explorer" className="h-[600px] overflow-hidden m-0 p-0">
+                   <div className="flex-grow flex flex-col h-full">
+                      <div className="flex justify-between items-center mb-2 flex-shrink-0 px-1">
+                         <h2 className="text-sm font-semibold">
+                            {getCodeFolderName(fileStructure.length > 0 ? fileStructure : repoData.structure)} Directory
+                         </h2>
+                         {selectedFile && (
+                            <Badge variant="outline" className="text-xs">
+                            <FileCode className="h-3.5 w-3.5 mr-1" />
+                            {selectedFile}
+                            </Badge>
+                         )}
                       </div>
-                    ) : error ? (
-                      <div className="flex h-full items-center justify-center p-4">
-                        <div className="text-center text-destructive">
-                          <p className="mb-2 font-semibold">Error</p>
-                          <p className="text-sm">{error}</p>
-                        </div>
+                      <div className="flex-grow border rounded-md overflow-hidden">
+                         <ResizablePanelGroup direction="horizontal" className="h-full">
+                            <ResizablePanel defaultSize={30} minSize={20}>
+                               <div className="flex h-full flex-col overflow-hidden">
+                                  <div className="border-b p-2 flex-shrink-0">
+                                      <div className="relative">
+                                          <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                          <Input
+                                              type="search"
+                                              placeholder={`Search ${getCodeFolderName(fileStructure.length > 0 ? fileStructure : repoData.structure)}...`}
+                                              className="w-full pl-8"
+                                              value={searchQuery}
+                                              onChange={(e) => setSearchQuery(e.target.value)}
+                                          />
+                                          {searchQuery && (
+                                              <button
+                                                  onClick={clearSearch}
+                                                  className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground hover:text-foreground"
+                                              >
+                                                  <X className="h-4 w-4" />
+                                              </button>
+                                          )}
+                                      </div>
+                                  </div>
+                                  <div className="overflow-auto flex-grow p-1">
+                                     {searchQuery ? (
+                                         <SearchResults 
+                                             results={searchResults} 
+                                             onSelectFile={handleFileSelect} 
+                                             isSearching={isSearching}
+                                             query={searchQuery}
+                                             selectedFile={selectedFile}
+                                         />
+                                     ) : (
+                                         isLoadingFiles ? (
+                                             <div className="flex h-full items-center justify-center">
+                                                 <div className="text-center">
+                                                     <div className="animate-spin mb-2 h-8 w-8 mx-auto border-2 border-primary border-t-transparent rounded-full" />
+                                                     <p className="text-sm text-muted-foreground">Loading files...</p>
+                                                 </div>
+                                             </div>
+                                         ) : error ? (
+                                             <div className="flex h-full items-center justify-center p-4">
+                                                 <div className="text-center text-destructive">
+                                                     <p className="mb-2 font-semibold">Error</p>
+                                                     <p className="text-sm">{error}</p>
+                                                 </div>
+                                             </div>
+                                         ) : (
+                                             <FileExplorer 
+                                                 files={filterCodeFolder(fileStructure.length > 0 ? fileStructure : repoData.structure)} 
+                                                 onSelectFile={handleFileSelect}
+                                                 selectedFile={selectedFile}
+                                             />
+                                         )
+                                     )}
+                                  </div>
+                               </div>
+                            </ResizablePanel>
+                            <ResizableHandle withHandle />
+                            <ResizablePanel defaultSize={70}>
+                               <div className="flex h-full flex-col overflow-hidden">
+                                  <div className="border-b px-4 py-2 flex items-center justify-between h-10 flex-shrink-0">
+                                      <div className="flex items-center">
+                                          {!selectedFile && (
+                                              <span className="text-sm text-muted-foreground">No file selected</span>
+                                          )}
+                                      </div>
+                                      {selectedFile && (
+                                        <div className="relative">
+                                          <SearchIcon className="absolute left-2 top-1.5 h-4 w-4 text-muted-foreground" />
+                                          <Input
+                                            type="search"
+                                            placeholder="Search in file..."
+                                            className="h-7 w-40 pl-7 text-xs"
+                                            value={inFileSearch}
+                                            onChange={(e) => setInFileSearch(e.target.value)}
+                                          />
+                                        </div>
+                                      )}
+                                  </div>
+                                  <div className="flex-grow overflow-auto p-4">
+                                      {isLoadingContent ? (
+                                          <div className="flex h-full items-center justify-center">
+                                              <div className="text-center">
+                                                  <div className="animate-spin mb-2 h-8 w-8 mx-auto border-2 border-primary border-t-transparent rounded-full" />
+                                                  <p className="text-sm text-muted-foreground">Loading file content...</p>
+                                              </div>
+                                          </div>
+                                      ) : error ? (
+                                          <div className="flex h-full items-center justify-center">
+                                              <div className="text-center text-destructive">
+                                                  <p className="mb-2 font-semibold">Error</p>
+                                                  <p className="text-sm">{error}</p>
+                                              </div>
+                                          </div>
+                                      ) : selectedFileContent !== null ? (
+                                          <CodeViewer 
+                                            code={selectedFileContent} 
+                                            language={language} 
+                                            searchTerm={inFileSearch} 
+                                            filePath={selectedFile}
+                                          />
+                                      ) : (
+                                          <div className="flex h-full flex-col items-center justify-center">
+                                              <FileCode className="mb-4 h-12 w-12 text-muted-foreground" />
+                                              <h3 className="mb-2 text-lg font-medium">No File Selected</h3>
+                                              <p className="text-center text-sm text-muted-foreground">
+                                                Select a file from the explorer to view its contents
+                                              </p>
+                                          </div>
+                                      )}
+                                  </div>
+                               </div>
+                            </ResizablePanel>
+                         </ResizablePanelGroup>
                       </div>
-                    ) : (
-                      <FileExplorer 
-                        files={filterCodeFolder(fileStructure.length > 0 ? fileStructure : repoData.structure)} 
-                        onSelectFile={handleFileSelect}
-                        selectedFile={selectedFile}
-                      />
-                    )
-                  )}
-                </div>
-              </div>
-            </ResizablePanel>
-            
-            <ResizableHandle withHandle />
-            
-            <ResizablePanel defaultSize={80}>
-              <div className="flex h-full flex-col overflow-hidden">
-                <div className="border-b px-4 py-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      {!selectedFile && (
-                        <span className="text-sm text-muted-foreground">No file selected</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "code" | "docs" | "ai")} className="mr-2">
-                        <TabsList className="h-8">
-                          <TabsTrigger value="code" className="h-7 text-xs">
-                            <Code className="mr-1 h-3.5 w-3.5" />
-                            Code
-                          </TabsTrigger>
-                        </TabsList>
-                      </Tabs>
-                      
-                      {/* In file search */}
-                      {selectedFile && activeTab === "code" && (
-                        <div className="relative">
-                          <SearchIcon className="absolute left-2 top-1.5 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            type="search"
-                            placeholder="Search in file..."
-                            className="h-7 w-40 pl-7 text-xs"
-                            value={inFileSearch}
-                            onChange={(e) => setInFileSearch(e.target.value)}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="h-full overflow-auto p-4">
-                  {isLoadingContent ? (
-                    <div className="flex h-full items-center justify-center">
-                      <div className="text-center">
-                        <div className="animate-spin mb-2 h-8 w-8 mx-auto border-2 border-primary border-t-transparent rounded-full" />
-                        <p className="text-sm text-muted-foreground">Loading file content...</p>
-                      </div>
-                    </div>
-                  ) : error ? (
-                    <div className="flex h-full items-center justify-center">
-                      <div className="text-center text-destructive">
-                        <p className="mb-2 font-semibold">Error</p>
-                        <p className="text-sm">{error}</p>
-                      </div>
-                    </div>
-                  ) : activeTab === "code" ? (
-                    selectedFile ? (
-                      <>
-                        {/* Debug info for content */}
-                        {process.env.NODE_ENV === 'development' && (
-                          <div className="mb-2 rounded bg-yellow-100 p-2 text-xs dark:bg-yellow-900/30">
-                            <p>Debug: Content Length: {selectedFileContent?.length || 0}</p>
-                          </div>
-                        )}
-                        <CodeViewer 
-                          code={selectedFileContent} 
-                          language={language} 
-                          searchTerm={inFileSearch} 
-                          filePath={selectedFile}
-                        />
-                      </>
-                    ) : (
-                      <div className="flex h-full flex-col items-center justify-center">
-                        <FileCode className="mb-4 h-12 w-12 text-muted-foreground" />
-                        <h3 className="mb-2 text-lg font-medium">No File Selected</h3>
-                        <p className="text-center text-sm text-muted-foreground">
-                          Select a file from the file explorer to view its contents
-                        </p>
-                      </div>
-                    )
-                  ) : null}
-                </div>
-              </div>
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        </div>
+                   </div>
+                </TabsContent>
+             </Tabs>
+           </CardContent>
+         </Card>
       </div>
     </div>
   )

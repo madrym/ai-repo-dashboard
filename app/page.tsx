@@ -14,11 +14,14 @@ export default function Home() {
             <span>RepoInsight</span>
           </div>
           <nav className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-              Dashboard
+            <Link href="/repo" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+              Repository
             </Link>
-            <Link href="/planner" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+            <Link href="/repo" className="text-sm font-medium text-muted-foreground hover:text-foreground">
               Feature Planner
+            </Link>
+            <Link href="/repo" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+              Feature Specs
             </Link>
             <ThemeToggle />
             <Button variant="default" size="sm">
@@ -40,7 +43,7 @@ export default function Home() {
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4">
               <Button size="lg" asChild>
-                <Link href="/auth">
+                <Link href="/repo">
                   <Github className="mr-2 h-5 w-5" />
                   Connect GitHub Repository
                 </Link>
@@ -66,7 +69,7 @@ export default function Home() {
               </CardContent>
               <CardFooter>
                 <Button variant="ghost" size="sm" className="w-full" asChild>
-                  <Link href="/dashboard">View Dashboard</Link>
+                  <Link href="/repo">Connect Repository</Link>
                 </Button>
               </CardFooter>
             </Card>
@@ -83,24 +86,24 @@ export default function Home() {
               </CardContent>
               <CardFooter>
                 <Button variant="ghost" size="sm" className="w-full" asChild>
-                  <Link href="/planner">Plan a Feature</Link>
+                  <Link href="/repo">Plan a Feature</Link>
                 </Button>
               </CardFooter>
             </Card>
             <Card className="flex h-full flex-col">
               <CardHeader>
-                <CardTitle>GitHub Integration</CardTitle>
-                <CardDescription>Seamless workflow integration</CardDescription>
+                <CardTitle>Feature Specs</CardTitle>
+                <CardDescription>Standardized feature specifications</CardDescription>
               </CardHeader>
               <CardContent className="flex-1">
                 <p className="text-sm text-muted-foreground">
-                  Commit your feature plans directly to your repository with automatic branch creation and pull
-                  requests.
+                  Create and manage standardized feature specifications with consistent documentation structure for
+                  better project organization.
                 </p>
               </CardContent>
               <CardFooter>
                 <Button variant="ghost" size="sm" className="w-full" asChild>
-                  <Link href="/docs/github-integration">Learn More</Link>
+                  <Link href="/repo">View Feature Specs</Link>
                 </Button>
               </CardFooter>
             </Card>

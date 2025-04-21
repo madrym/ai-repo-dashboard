@@ -39,6 +39,7 @@
     "@radix-ui/react-toggle-group": "^1.1.1",
     "@radix-ui/react-tooltip": "latest",
     "@types/mermaid": "^9.2.0",
+    "@types/uuid": "^10.0.0",
     "@xmldom/xmldom": "^0.8.10",
     "ai": "latest",
     "autoprefixer": "^10.4.20",
@@ -68,12 +69,14 @@
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.1.0",
     "vaul": "^0.9.6",
     "xml2js": "^0.6.2",
     "xmldom": "^0.6.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",

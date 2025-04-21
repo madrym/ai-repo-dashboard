@@ -86,7 +86,7 @@ body {
 
 @layer base {
   * {
-    @apply border-border;
+    /* Border styling removed */
   }
   body {
     @apply bg-background text-foreground;

@@ -5,3 +5,4 @@ node_modules
 
 # Local repository storage
 /storage/repos/
+.ai

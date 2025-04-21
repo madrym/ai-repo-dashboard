@@ -45,16 +45,74 @@ The content is organized as follows:
 </file_summary>
 
 <directory_structure>
+__tests__/
+  local-clone.test.ts
 app/
   api/
     analyze-feature/
       route.ts
+    analyze-repo/
+      route.ts
+    dependencies/
+      route.ts
+    feature-specs/
+      [id]/
+        chat/
+          route.ts
+        route.ts
+      copy-to-storage/
+        route.ts
+      generate/
+        route.ts
+      route.ts
     generate-plan/
       route.ts
+    get-cwd/
+      route.ts
+    get-repo/
+      route.ts
+    llm/
+      generate-form/
+        route.ts
+    repos/
+      [org]/
+        [repo]/
+          [branch]/
+            feature-specs/
+              [id]/
+                route.ts
+              generate/
+                route.ts
+              route.ts
+            generate-overview/
+              route.ts
+            get-overview/
+              route.ts
+    repositories/
+      clone/
+        route.ts
+      connect/
+        route.ts
+      debug/
+        route.ts
+      file-content/
+        route.ts
+      generate-repomix/
+        route.ts
+      local-file/
+        route.ts
+      local-structure/
+        route.ts
+      repomix/
+        route.ts
+      repomix-files/
+        route.ts
+      repomix-summary/
+        route.ts
+        utils.ts
+      repomix-xml/
+        route.ts
   auth/
-    page.tsx
-  dashboard/
-    loading.tsx
     page.tsx
   dependencies/
     loading.tsx
@@ -68,6 +126,32 @@ app/
     loading.tsx
     page.tsx
   planner/
+    page.tsx
+  repo/
+    [org]/
+      [repo]/
+        [branch]/
+          dashboard/
+            loading.tsx
+            page.tsx
+          dependencies/
+            loading.tsx
+            page.tsx
+          feature-specs/
+            [id]/
+              loading.tsx
+              page.tsx
+            new/
+              form/
+                page.tsx
+              page.tsx
+            layout.tsx
+            loading.tsx
+            page.tsx
+          layout.tsx
+        layout.tsx
+      layout.tsx
+    layout.tsx
     page.tsx
   templates/
     [id]/
@@ -132,6 +216,7 @@ components/
     tooltip.tsx
     use-mobile.tsx
     use-toast.ts
+  ai-analysis.tsx
   code-viewer.tsx
   dependency-details.tsx
   dependency-graph.tsx
@@ -139,7 +224,9 @@ components/
   feature-card.tsx
   file-explorer.tsx
   markdown-editor.tsx
+  mermaid-diagram.tsx
   repo-summary.tsx
+  repository-info.tsx
   repository-insights.tsx
   repository-timeline.tsx
   search-results.tsx
@@ -155,19 +242,54 @@ hooks/
   use-mobile.tsx
   use-toast.ts
 lib/
+  github/
+    __tests__/
+      jest.d.ts
+      repositories.test.ts
+    cache.ts
+    client.ts
+    config.ts
+    context.tsx
+    index.ts
+    repomix.ts
+    repositories.ts
+    types.ts
+    utils.ts
+  openai/
+    client.ts
+    config.ts
+    handlers.ts
+    index.ts
+    prompts.ts
+    types.ts
+    utils.ts
+  prompts/
+    repoMixAnalysisPrompt.ts
+  services/
+    repomix-generator.ts
+  llm-server.ts
+  llm.ts
+  openai.ts
   template-data.ts
   utils.ts
 public/
   placeholder-logo.svg
   placeholder.svg
+scripts/
+  setup-test-repo.js
 styles/
   globals.css
-.cursorrules
+.env.example
+.gitignore
+cleanup.md
 components.json
+middleware.ts
 next-env.d.ts
 next.config.mjs
 package.json
 postcss.config.mjs
+spec-template.md
+tailwind.config.js
 tailwind.config.ts
 tsconfig.json
 </directory_structure>
@@ -175,10 +297,65 @@ tsconfig.json
 <files>
 This section contains the contents of the repository's files.
 
+<file path="cleanup.md">
+# Repository Cleanup Notes
+
+This file tracks potential areas for cleanup in the repository.
+
+## Unused Dependencies (via `depcheck`)
+
+The following dependencies were flagged by `depcheck`. Manual verification is needed as `depcheck` might not detect all usage patterns (e.g., in config files, scripts).
+
+### Unused Dependencies
+
+*   `@xmldom/xmldom`: Potential candidate for removal. Needs verification.
+*   `autoprefixer`: Likely **false positive**. Used by Tailwind/PostCSS (`postcss.config.mjs`).
+*   `dotenv`: Potential candidate for removal. Check usage in scripts or deployment configs.
+*   `react-markdown`: Potential candidate for removal. Needs verification.
+*   `remark-gfm`: Potential candidate for removal (often used with `react-markdown`). Needs verification.
+*   `xml2js`: Potential candidate for removal. Needs verification (might relate to `repomix-output.xml` processing?).
+
+### Unused DevDependencies
+
+*   `@types/xml2js`: Potential candidate for removal (related to `xml2js`). Needs verification.
+*   `postcss`: Likely **false positive**. Used by Tailwind/PostCSS (`postcss.config.mjs`).
+*   `typescript`: Likely **false positive**. Required for TS compilation.
+
+## Potentially Unused Files
+
+*(Analysis pending)*
+</file>
+
+<file path="__tests__/local-clone.test.ts">
+import fs from 'fs';
+import path from 'path';
+⋮----
+// Skip tests if we're in CI environment
+⋮----
+// Simple way to conditionally skip tests without using describe.skip
+⋮----
+// Ensure the repo storage directory exists
+⋮----
+// Check if directory exists
+⋮----
+// Create test directory
+⋮----
+// Write test file
+⋮----
+// Read test file
+⋮----
+// Verify content
+⋮----
+// Clean up
+⋮----
+// Skip tests in CI environment
+</file>
+
 <file path="app/api/analyze-feature/route.ts">
 import { NextResponse } from "next/server"
 import { generateObject } from "ai"
-import { openai } from "@ai-sdk/openai"
+import { getSchemaClient, handleOpenAIError, isRetryableError, SCHEMA_SYSTEM_PROMPT } from "@/lib/openai"
+import { z } from "zod"
 ⋮----
 // Define the structure for our form fields
 export interface FormField {
@@ -197,6 +374,8 @@ export interface FormSchema {
   featureSummary: string
 }
 ⋮----
+// Zod schema for form validation
+⋮----
 // Mock data to use as fallback when the AI service is unavailable
 ⋮----
 export async function POST(request: Request)
@@ -205,22 +384,710 @@ export async function POST(request: Request)
 ⋮----
 // Check if body was successfully parsed
 ⋮----
+// Get the OpenAI client specifically configured for schema generation
+⋮----
 // Generate a custom form schema based on the feature idea
 ⋮----
-// Return the mock data as a fallback when the AI service fails
+// Log token usage for monitoring
+⋮----
+// Retry if the error is retryable and we haven't exceeded retries
+⋮----
+// Add exponential backoff
+⋮----
+// If we can't retry, use mock data as a fallback
+⋮----
+// This should never be reached given the loop above
 ⋮----
 // Return a proper JSON error response
+</file>
+
+<file path="app/api/analyze-repo/route.ts">
+import { NextRequest, NextResponse } from 'next/server';
+import { promises as fs } from 'fs';
+import path from 'path';
+⋮----
+// Function to recursively scan a directory and build a file tree
+async function scanDirectory(dir: string, baseDir: string): Promise<any[]>
+⋮----
+// Extract imports from JavaScript/TypeScript files
+async function extractImports(filePath: string): Promise<string[]>
+⋮----
+// Regular imports
+⋮----
+// Dynamic imports
+⋮----
+// Analyze a file to build dependency information
+async function analyzeFile(filePath: string, repoPath: string): Promise<any>
+⋮----
+// Only analyze JavaScript/TypeScript files
+⋮----
+// Build dependency graph from all files
+async function buildDependencyGraph(fileStructure: any[], repoPath: string): Promise<any>
+⋮----
+// Flat list of files from file structure
+function extractFiles(items: any[], result: string[] = [])
+⋮----
+// Analyze each file
+⋮----
+// Build the graph
+⋮----
+).filter(edge => edge.target) // Filter out edges with undefined targets
+⋮----
+// Resolve relative import paths to absolute paths
+function resolveImportPath(sourcePath: string, importPath: string, availableFiles: string[]): string | undefined
+⋮----
+// Handle package imports (not local files)
+⋮----
+// Try to match with available files
+⋮----
+// Try with extensions
+⋮----
+// Try with /index.* files
+⋮----
+export async function POST(request: NextRequest)
+⋮----
+// Validate the repository path
+⋮----
+// Scan the directory to build file structure
+⋮----
+// Build dependency graph
+</file>
+
+<file path="app/api/dependencies/route.ts">
+import { NextResponse } from 'next/server';
+// Remove direct dependency-cruiser import
+// import { cruise, type IModule } from 'dependency-cruiser';
+import path from 'path';
+import fs from 'fs';
+import { spawn, ChildProcessWithoutNullStreams } from 'child_process'; // Import specific type
+⋮----
+interface DependencyNode {
+  id: string; // Typically the file path
+  label: string; // Display label, could be file name
+}
+⋮----
+id: string; // Typically the file path
+label: string; // Display label, could be file name
+⋮----
+interface DependencyEdge {
+  source: string; // Source file path
+  target: string; // Target file path
+  type: string; // e.g., 'dependency', 'devDependency', 'core', 'internal'
+}
+⋮----
+source: string; // Source file path
+target: string; // Target file path
+type: string; // e.g., 'dependency', 'devDependency', 'core', 'internal'
+⋮----
+interface DependencyGraphData {
+  nodes: DependencyNode[];
+  edges: DependencyEdge[];
+}
+⋮----
+// Type for file structure items
+interface FileStructureItem {
+  name: string;
+  type: 'directory' | 'file';
+  path: string; // Relative path from repoRoot
+  children?: FileStructureItem[];
+}
+⋮----
+path: string; // Relative path from repoRoot
+⋮----
+// Function to recursively get directory structure
+function getDirectoryStructure(dirPath: string, rootPath: string = dirPath): FileStructureItem[]
+⋮----
+// Skip hidden files/folders like .git
+⋮----
+// Skip node_modules
+⋮----
+// Add type check for error
+⋮----
+// Add type check for error
+⋮----
+// Return empty array or throw, depending on desired behavior
+⋮----
+// Sort directories first, then files, alphabetically
+⋮----
+export async function GET(request: Request)
+⋮----
+// --- Construct path relative to project root ---
+⋮----
+// Use process.cwd() to get the project's root directory on the server
+⋮----
+// --- End path construction ---
+⋮----
+// Check if the directory exists
+⋮----
+// Add context about the relative path attempted
+⋮----
+// --- Adjust output directory path similarly ---
+⋮----
+// --- End output dir adjustment ---
+⋮----
+// Use a Promise to handle the asynchronous child process
+⋮----
+// Ensure the child process runs within the target repository directory
+// Remove shell: true to avoid shell metacharacter issues with arguments
+⋮----
+// shell: true,
+env: { ...process.env, NODE_OPTIONS: '' } // Avoid potential NODE_OPTIONS conflicts
+⋮----
+// Add types for data parameters
+⋮----
+// Add type for code parameter
+⋮----
+if (jsonMatch && jsonMatch.index !== undefined) { // Check index is not undefined
+⋮----
+// Handle potential null exit code
+⋮----
+// Add type for err parameter
+⋮----
+// --- Save the raw JSON output ---
+⋮----
+fs.mkdirSync(outputDir, { recursive: true }); // Create directory if it doesn't exist
+⋮----
+fs.writeFileSync(outputFilePath, cruiseResultJson); // Write the raw JSON string
+⋮----
+// Continue processing despite save error
+⋮----
+// --- End saving ---
+⋮----
+// Parse the JSON output from stdout
+⋮----
+// Transform the result
+⋮----
+module.dependencies?.forEach((dep: any) => { // Check if dependencies array exists
+⋮----
+if (targetId) { // Process only if dependency was resolved
+⋮----
+// --- Get the file structure ---
+⋮----
+// --- End file structure ---
+⋮----
+// Return both graph data and file structure
+⋮----
+// Ensure error response structure is consistent
+</file>
+
+<file path="app/api/feature-specs/[id]/chat/route.ts">
+import { NextResponse } from "next/server";
+import fs from "fs/promises";
+import path from "path";
+import { getApiKeyForProvider, createLLMProvider } from "@/lib/llm-server";
+import { parseRepositoryUrl } from "@/lib/github";
+import { REPO_STORAGE_DIR } from "@/lib/services/repomix-generator";
+⋮----
+// Define the base feature spec path
+⋮----
+interface ChatMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+}
+⋮----
+interface ChatRequest {
+  messages: ChatMessage[];
+  provider?: string;
+  apiKey?: string;
+}
+⋮----
+// Function to find a feature spec directory by ID
+async function findFeatureSpecById(id: string, repositoryUrl: string): Promise<string | null>
+⋮----
+// Parse repository URL
+⋮----
+const branch = "main"; // Default to main branch
+⋮----
+// Format ID for consistency
+⋮----
+// Create a safe directory name
+⋮----
+// Define the full path
+⋮----
+// Check if the directory exists
+⋮----
+export async function POST(
+  request: Request,
+  { params }: { params: { id: string } }
+)
+⋮----
+// Find the feature spec directory
+⋮----
+// Read the feature spec files for context
+⋮----
+// Read all files in parallel
+⋮----
+// Extract basic metadata
+⋮----
+// Construct context message
+⋮----
+// Create system message with context
+⋮----
+// Get the API key
+⋮----
+// Create LLM provider client
+⋮----
+// Add system message at the beginning if not already there
+⋮----
+// Call the LLM provider
+⋮----
+// Helper function to load feature spec content
+async function loadFeatureSpecContent(featurePath: string)
+⋮----
+// Read metadata.md
+⋮----
+// Extract title and description
+⋮----
+// Extract description
+⋮----
+// Try to extract the whole section and get the first line
+⋮----
+// Read final-spec.md
+⋮----
+// Read architecture.md
+⋮----
+// Helper function to save messages to chat history
+async function saveMessageToHistory(
+  chatHistoryDir: string,
+  message: ChatMessage,
+  timestamp: string
+)
+⋮----
+// Format the timestamp for the filename
+⋮----
+// GET endpoint to retrieve chat history
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+)
+⋮----
+// Format ID for consistency
+⋮----
+// Create the directory name
+⋮----
+// Define the full path
+⋮----
+// Check if the feature spec exists
+⋮----
+// Check if chat history exists
+⋮----
+// Return empty history if no chat history yet
+⋮----
+// Read chat history files
+⋮----
+// Sort files by timestamp (which is in the filename)
+⋮----
+// Process each file and build messages array
+⋮----
+// Extract role from filename
+⋮----
+// Extract message content (everything after the first empty line)
+</file>
+
+<file path="app/api/feature-specs/[id]/route.ts">
+import { NextResponse } from "next/server";
+import fs from "fs/promises";
+import path from "path";
+import { parseRepositoryUrl } from "@/lib/github";
+import { REPO_STORAGE_DIR } from "@/lib/services/repomix-generator";
+⋮----
+// Type definitions for extracted metadata
+interface DescriptionMatch {
+  captured: string;
+}
+⋮----
+interface FeatureSpecMetadata {
+  stakeholders: string[];
+  priority: string;
+  estimatedEffort: string;
+  dependencies: string[];
+  tags: string[];
+}
+⋮----
+interface HistoryItem {
+  version: string;
+  title: string;
+  content: string;
+  date: string;
+}
+⋮----
+interface RepositoryInfo {
+  owner: string;
+  repo: string;
+  branch: string;
+}
+⋮----
+// Function to find a feature spec directory by ID
+async function findFeatureSpecById(id: string, repositoryUrl: string): Promise<
+⋮----
+// Parse repository URL
+⋮----
+const branch = "main"; // Default to main branch
+⋮----
+// Format ID for consistency
+⋮----
+// Create a safe directory name
+⋮----
+// Define the full path
+⋮----
+// Check if the directory exists
+⋮----
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+)
+⋮----
+// Find the feature spec directory
+⋮----
+// Read the feature spec files
+⋮----
+// Read the feature spec files
+⋮----
+// Extract metadata
+⋮----
+// Parse basic metadata
+⋮----
+// Get history files
+⋮----
+// Read history files
+⋮----
+date: createdMatch?.[1] || "", // Use created date as fallback
+⋮----
+// Skip files that can't be read
+⋮----
+// Sort history items by version (newest first)
+⋮----
+// Construct the response
+⋮----
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+)
+⋮----
+// Find the feature spec directory
+⋮----
+// Determine which file to update
+⋮----
+// Update the file
+⋮----
+// Update the last updated date in metadata
+⋮----
+// Replace the last updated date
+⋮----
+// Write the updated metadata
+⋮----
+// Create a new history entry if there's a substantive change
+⋮----
+// Find the highest draft version
+⋮----
+// Read the title from the final spec
+⋮----
+// Create the draft content
+⋮----
+// Write the draft file
+⋮----
+// Even if metadata update fails, we succeeded in updating the main content
+</file>
+
+<file path="app/api/feature-specs/copy-to-storage/route.ts">
+import { NextRequest, NextResponse } from "next/server";
+import fs from "fs/promises";
+import path from "path";
+import { parseRepositoryUrl } from "@/lib/github";
+import { REPO_STORAGE_DIR } from "@/lib/services/repomix-generator";
+⋮----
+// Define the source path
+⋮----
+export async function POST(request: Request)
+⋮----
+// Parse repository URL
+⋮----
+const branch = "main"; // Default to main branch
+⋮----
+// Format ID for consistency
+⋮----
+// Create the directory name
+⋮----
+// Define full paths
+⋮----
+// Check if the source feature spec exists
+⋮----
+// Create target directory recursively
+⋮----
+// Copy function to recursively copy directories
+const copyDir = async (src: string, dest: string) =>
+⋮----
+// Create destination directory
+⋮----
+// Read source directory
+⋮----
+// Recursively copy directory
+⋮----
+// Copy file
+⋮----
+// Copy the feature spec directory recursively
+⋮----
+// Also add a GET endpoint to copy all feature specs
+export async function GET(request: NextRequest)
+⋮----
+// Parse repository URL
+⋮----
+const branch = "main"; // Default to main branch
+⋮----
+// Define target path using the repository information
+⋮----
+// Ensure target directory exists
+⋮----
+// Check if the source directory exists
+⋮----
+// Read all entries in the source directory
+⋮----
+// Copy function to recursively copy directories
+⋮----
+// Create destination directory
+⋮----
+// Read source directory
+⋮----
+// Recursively copy directory
+⋮----
+// Copy file
+⋮----
+// Copy each feature spec directory
+</file>
+
+<file path="app/api/feature-specs/generate/route.ts">
+import { NextResponse } from 'next/server';
+import fs from 'fs/promises';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import { 
+  createLLMProvider, 
+  getApiKeyForProvider, 
+  LLMMessage 
+} from '@/lib/llm-server';
+import { REPO_STORAGE_DIR } from '@/lib/services/repomix-generator'; // Assuming this is the base storage path
+⋮----
+// --- Helper: Define File Generation Templates ---
+// (These are basic templates; they should be enhanced based on your detailed requirements)
+const generateFinalSpec = (id: string, title: string, idea: string, llmContent: any): string => `
+---\nfeature_id: $
+⋮----
+const generatePlanningMd = (id: string, title: string, idea: string, llmContent: any): string => `
+# PLANNING.md – $
+⋮----
+const generateTaskMd = (id: string, title: string, llmContent: any): string => `
+# TASK.md – $
+⋮----
+const generateArchitectureMd = (id: string, llmContent: any): string => `
+# ARCHITECTURE.md – $
+⋮----
+const generateMetadataMd = (id: string, title: string, idea: string, answers: any, llmPrompt: string): string => `
+# Metadata Log – $
+⋮----
+const generateDraft1Md = (id: string, title: string, idea: string): string => `
+# Draft 1 - $
+⋮----
+// --- Sanitization Helper ---
+function sanitizeFilename(name: string): string
+⋮----
+if (!name) return ''; // Handle empty input
+// Convert to lowercase
+⋮----
+// Replace spaces and common separators with hyphens
+⋮----
+// Remove any characters that are not alphanumeric, hyphen, or period (allow periods for potential extensions later, though maybe not needed for dirs)
+⋮----
+// Remove leading/trailing hyphens
+⋮----
+// Collapse consecutive hyphens
+⋮----
+// Prevent names that are just dots or hyphens
+⋮----
+// Limit length (optional but recommended)
+return sanitized.slice(0, 100); // Max length 100 chars
+⋮----
+// --- API Handler ---
+export async function POST(request: Request)
+⋮----
+ideaId, // ID from the previous step
+⋮----
+// --- Input Validation ---
+⋮----
+// --- Get Feature ID from answers (user-provided) ---
+const idQuestionKey = Object.keys(answers).find(key => key.startsWith('feature-id')); // Find the key used for feature ID
+⋮----
+// --- Sanitize and Validate Feature ID ---
+⋮----
+// If sanitized ID is empty or invalid, generate a fallback ID
+⋮----
+// Generate a fallback based on title (if available) or UUID
+⋮----
+// Prefix user-provided IDs for consistency (optional)
+⋮----
+featureId = featureId.slice(0, 100); // Ensure final ID respects length limit
+⋮----
+// --- Feature Title ---
+⋮----
+// --- Prepare File Paths (using SANITIZED featureId) ---
+⋮----
+// --- Check if directory already exists (using SANITIZED featureId) ---
+⋮----
+// If access doesn't throw, directory exists
+⋮----
+{ status: 409 } // Conflict
+⋮----
+// Directory doesn't exist, proceed (this is the expected case)
+⋮----
+// --- Construct SpecWriter-GPT Prompt ---
+⋮----
+// --- Initialize LLM ---
+⋮----
+// --- Call LLM for Content Generation ---
+⋮----
+// SpecWriter prompt is user role as it contains instructions + context
+⋮----
+maxTokens: 64000, // Increased token limit
+responseFormat: { type: "json_object" } // Request JSON output
+⋮----
+// console.log(llmResponse.content); // Log raw response if debugging
+⋮----
+// --- Parse LLM Response ---
+⋮----
+// Basic validation of expected structure
+⋮----
+// Fallback or error handling needed - maybe return error or try again?
+// For now, we'll throw an error to the client
+⋮----
+rawContent: llmResponse.content // Include raw content for debugging
+⋮----
+// --- Generate File Content using LLM Output ---
+⋮----
+// --- Create Directories & Write Files ---
+⋮----
+// --- Clean up temporary data (if applicable) ---
+// localStorage is client-side, so no server-side cleanup needed for that.
+// If you implement server-side temporary storage for ideaId, clean it here.
+⋮----
+// --- Return Success ---
+</file>
+
+<file path="app/api/feature-specs/route.ts">
+import { NextResponse } from "next/server";
+import fs from "fs/promises";
+import path from "path";
+import { parseRepositoryUrl } from "@/lib/github";
+import { REPO_STORAGE_DIR } from "@/lib/services/repomix-generator";
+⋮----
+interface FeatureSpecRequest {
+  id: string;
+  title: string;
+  repositoryUrl: string;
+}
+⋮----
+// Type for the feature spec metadata
+interface FeatureSpec {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  createdAt: string;
+  lastUpdated: string;
+  author: string;
+  path: string;
+}
+⋮----
+// Templates for feature spec files
+function generateFinalSpecTemplate(id: string, title: string): string
+⋮----
+function generateDraftTemplate(id: string, title: string, version: string): string
+⋮----
+function generateMetadataTemplate(id: string, title: string, date: string, org?: string, repo?: string, branch?: string): string
+⋮----
+function generateArchitectureTemplate(id: string, title: string): string
+⋮----
+function generatePlanningTemplate(id: string, title: string): string
+⋮----
+function generateTaskTemplate(id: string, title: string): string
+⋮----
+export async function POST(request: Request)
+⋮----
+// Read parameters sent from the frontend
+⋮----
+description, // Add description, problem, outOfScope if needed
+⋮----
+useAiGeneration // Add useAiGeneration if needed by backend logic
+⋮----
+// Validation for new parameters
+⋮----
+// Use provided org, repo, branch
+⋮----
+// Format ID (assuming it comes pre-slugified from frontend)
+const formattedId = id.trim().toLowerCase(); // Use lowercase for consistency
+// Create a safe directory name
+const dirName = formattedId; // Use the ID directly as dir name
+⋮----
+// Define the full path for storage using provided parameters
+⋮----
+// Check if the feature spec already exists
+⋮----
+// This is expected if the directory doesn't exist, we continue
+⋮----
+// Create the main directories
+⋮----
+// Current date for the templates
+⋮----
+// Create the template files
+⋮----
+// Write all files
+⋮----
+export async function GET(request: Request)
+⋮----
+// Read org, repo, and branch directly from searchParams
+⋮----
+// Validate the required parameters
+⋮----
+// No need to parse repositoryUrl anymore
+// const repositoryUrl = searchParams.get('repositoryUrl');
+// if (!repositoryUrl) { ... }
+// const repoInfo = parseRepositoryUrl(repositoryUrl);
+// if (!repoInfo) { ... }
+// const { owner, repo: repoName } = repoInfo; // Renamed repo to avoid conflict
+⋮----
+// Use the provided org, repo, and branch
+const owner = org; // Use org directly
+// Use repo directly
+⋮----
+// Get all feature specs
+⋮----
+// Define the feature specs path using the correct parameters
+⋮----
+// Check if the directory exists
+⋮----
+// Create the directory if it doesn't exist
+⋮----
+// Read the directory to get all feature specs
+⋮----
+// Check if metadata file exists
+⋮----
+// Read metadata to extract basic info
+⋮----
+// Extract ID and title from metadata
+⋮----
+// Skip directories with missing or invalid metadata
 </file>
 
 <file path="app/api/generate-plan/route.ts">
 import { NextResponse } from "next/server"
 import { generateObject } from "ai"
-import { openai } from "@ai-sdk/openai"
+import { getPlanningClient, handleOpenAIError, isRetryableError, PLANNING_SYSTEM_PROMPT, createPlanningPrompt } from "@/lib/openai"
+import { z } from "zod"
 ⋮----
 interface PlanningDocument {
   planningMd: string
   taskMd: string
 }
+⋮----
+// Zod schema for planning document validation
 ⋮----
 // Mock data to use as fallback when the AI service is unavailable
 ⋮----
@@ -232,200 +1099,938 @@ export async function POST(request: Request)
 ⋮----
 // Convert form data to a string representation for the prompt
 ⋮----
+// Get the OpenAI client specifically configured for planning
+⋮----
 // Generate planning documents based on the feature idea and form data
 ⋮----
-// Return the mock data as a fallback when the AI service fails
+// Log token usage for monitoring
+⋮----
+// Retry if the error is retryable and we haven't exceeded retries
+⋮----
+// Add exponential backoff
+⋮----
+// If we can't retry, use mock data as a fallback
 ⋮----
 // Customize the mock data with the feature idea
+⋮----
+// This should never be reached given the loop above
 ⋮----
 // Return a proper JSON error response
 </file>
 
-<file path="app/auth/page.tsx">
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Github, Lock } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { toast } from "@/components/ui/use-toast"
-import { ThemeToggle } from "@/components/theme-toggle"
+<file path="app/api/get-cwd/route.ts">
+import { NextResponse } from 'next/server';
+import { promises as fs } from 'fs';
+import path from 'path';
+import os from 'os';
 ⋮----
-export default function AuthPage()
+export async function GET()
 ⋮----
-const handleConnect = async () =>
+// Get current working directory as base
 ⋮----
-// Simulate authentication and repository connection
+// Path to the storage directory where repositories are stored
+⋮----
+// Check if the storage directory exists
+⋮----
+// Get organizations
+⋮----
+// Use the first organization found (or query param in future)
+⋮----
+// Get repositories
+⋮----
+// Use the first repository found (or query param in future)
+⋮----
+// Get branches
+⋮----
+// Use the first branch found (or query param in future)
+⋮----
+// Full path to the repository code
+⋮----
+// Verify code directory exists
 </file>
 
-<file path="app/dashboard/loading.tsx">
-export default function Loading()
+<file path="app/api/get-repo/route.ts">
+import { NextRequest, NextResponse } from 'next/server';
+import { promises as fs } from 'fs';
+import path from 'path';
+⋮----
+export async function GET(request: NextRequest)
+⋮----
+// Get query parameters
+⋮----
+// Validate required parameters
+⋮----
+// Get current working directory as base
+⋮----
+// Construct the full path to the repository
+⋮----
+// Check if the repository path exists
+⋮----
+// Return repository information
 </file>
 
-<file path="app/dashboard/page.tsx">
-import { useEffect } from "react"
+<file path="app/api/llm/generate-form/route.ts">
+import { NextResponse } from 'next/server';
+import { v4 as uuidv4 } from 'uuid'; // Using uuid for unique IDs
+import { 
+  createLLMProvider, 
+  getApiKeyForProvider, 
+  LLMMessage 
+} from '@/lib/llm-server'; // Import server-side LLM functions
 ⋮----
-import { useState } from "react"
-import Link from "next/link"
+} from '@/lib/llm-server'; // Import server-side LLM functions
+⋮----
+// --- Remove Mock Data ---
+// const MOCK_FORM_MARKDOWN = `...`;
+⋮----
+// --- API Handler ---
+export async function POST(request: Request)
+⋮----
+// --- Input Validation ---
+⋮----
+// --- Construct FormArchitect-GPT Prompt ---
+⋮----
+// console.log(prompt); // Keep prompt logging minimal unless debugging
+⋮----
+// --- Initialize LLM ---
+const providerName = process.env.LLM_PROVIDER || 'gemini'; // Default to gemini or read from env
+⋮----
+// --- Call LLM ---
+⋮----
+// Note: FormArchitect prompt is implicitly a system/instruction prompt
+// For Gemini, system prompts are handled differently (prepended to user message)
+// We send the whole prompt as a single user message here for simplicity with the current llm-server structure
+⋮----
+temperature: 0.5, // Slightly lower temp for more deterministic structure
+maxTokens: 64000 // Reverted to user preference
+⋮----
+// --- Clean the response: Remove potential code fences ---
+⋮----
+// Trim whitespace just in case
+⋮----
+// --- End Cleaning ---
+⋮----
+// console.log(generatedMarkdown);
+⋮----
+// --- Generate Unique ID ---
+⋮----
+// --- (SIMULATED) Temporary Storage ---
+// Still simulating storage, but using the actual LLM response now
+⋮----
+// Example: await tempStore.set(ideaId, { idea, markdown: generatedMarkdown });
+⋮----
+// --- Return Response ---
+⋮----
+// Provide more specific error if possible
+const status = (error as any)?.response?.status || 500; // Check for status on error object
+</file>
+
+<file path="app/api/repos/[org]/[repo]/[branch]/feature-specs/[id]/route.ts">
+import { NextResponse } from "next/server";
+import fs from "fs/promises";
+import path from "path";
+⋮----
+// Define the base feature spec path
+⋮----
+interface FeatureSpecMetadata {
+  stakeholders: string[];
+  priority: string;
+  estimatedEffort: string;
+  dependencies: string[];
+  tags: string[];
+}
+⋮----
+interface HistoryItem {
+  version: string;
+  date: string;
+  content: string;
+}
+⋮----
+interface FeatureSpec {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  createdAt: string;
+  lastUpdated: string;
+  author: string;
+  path: string;
+  finalSpec: string;
+  metadata: FeatureSpecMetadata;
+  architecture: string;
+  planning: string;
+  tasks: string;
+  history: HistoryItem[];
+}
+⋮----
+export async function GET(
+  request: Request,
+  { params }: { params: { org: string; repo: string; branch: string; id: string } }
+)
+⋮----
+// Log for debugging
+⋮----
+// Format ID for consistency
+⋮----
+// Create a safe directory name
+⋮----
+// Define the full path
+⋮----
+// Check if the feature spec exists
+⋮----
+// Read all the feature spec files
+⋮----
+// Read metadata content
+⋮----
+// Extract metadata information
+⋮----
+// Read content of other files
+⋮----
+// Read history items
+⋮----
+// Sort history files by version number
+⋮----
+return versionB - versionA; // Most recent first
+⋮----
+// Read content of each history file
+⋮----
+// Extract version from filename
+⋮----
+// Try to extract date from content
+⋮----
+// Extract stakeholders, dependencies, and tags
+⋮----
+// Extract tags from description or set default
+⋮----
+// Construct the feature spec object
+</file>
+
+<file path="app/api/repos/[org]/[repo]/[branch]/feature-specs/generate/route.ts">
+import { NextResponse } from "next/server";
+import fs from "fs/promises";
+import path from "path";
+import { getApiKeyForProvider, createLLMProvider } from "@/lib/llm-server";
+⋮----
+// Define the base feature spec path
+⋮----
+// Define the storage path
+⋮----
+interface GenerateFeatureSpecRequest {
+  id: string;
+  title: string;
+  description?: string;
+  problem?: string;
+  outOfScope?: string;
+  apiKey?: string;
+  provider?: string;
+}
+⋮----
+// Helper function to copy a directory recursively
+async function copyDir(src: string, dest: string)
+⋮----
+// Create destination directory
+⋮----
+// Read source directory
+⋮----
+// Recursively copy directory
+⋮----
+// Copy file
+⋮----
+export async function POST(
+  request: Request,
+  { params }: { params: { org: string; repo: string; branch: string } }
+)
+⋮----
+// Fix: Explicitly await params object before destructuring
+⋮----
+// Log for debugging
+⋮----
+// Validation
+⋮----
+// Format ID for consistency
+⋮----
+// Create a safe directory name
+⋮----
+// Define the full path
+⋮----
+// Check if the feature spec already exists
+⋮----
+// This is expected if the directory doesn't exist, we continue
+⋮----
+// Current date for the templates
+⋮----
+// Generate content using AI
+⋮----
+// Create the main directories
+⋮----
+// Create the template files
+⋮----
+// Write all files
+⋮----
+// Also copy the feature spec to the storage location
+⋮----
+// Don't fail the request if copying fails, just log the error
+⋮----
+async function generateContentWithAI(
+  id: string,
+  title: string,
+  description: string,
+  problem: string,
+  outOfScope: string,
+  org: string,
+  repo: string,
+  branch: string,
+  date: string,
+  clientApiKey?: string,
+  provider = 'gemini'  // Default to Gemini
+)
+⋮----
+provider = 'gemini'  // Default to Gemini
+⋮----
+// Get API key - first try from client, then try server
+⋮----
+// Create LLM provider
+⋮----
+// Prepare the prompt for the AI - enhanced for better JSON response
+⋮----
+// Call the LLM
+⋮----
+maxTokens: 64000, // Increased token limit
+⋮----
+// Parse the response
+⋮----
+// Validate the response has the expected fields
+⋮----
+// Check that no field is empty
+</file>
+
+<file path="app/api/repos/[org]/[repo]/[branch]/feature-specs/route.ts">
+import { NextResponse } from "next/server";
+import fs from "fs/promises";
+import path from "path";
+⋮----
+// Define the base feature spec path
+⋮----
+interface FeatureSpecRequest {
+  id: string;
+  title: string;
+}
+⋮----
+interface FeatureSpec {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  createdAt: string;
+  lastUpdated: string;
+  author: string;
+  path: string;
+}
+⋮----
+export async function POST(
+  request: Request,
+  { params }: { params: { org: string; repo: string; branch: string } }
+)
+⋮----
+// Log for debugging
+⋮----
+// Validation
+⋮----
+// Format ID for consistency
+⋮----
+// Create a safe directory name
+⋮----
+// Define the full path
+⋮----
+// Check if the feature spec already exists
+⋮----
+// This is expected if the directory doesn't exist, we continue
+⋮----
+// Create the main directories
+⋮----
+// Current date for the templates
+⋮----
+// Create the template files
+⋮----
+// Write all files
+⋮----
+export async function GET(
+  request: Request,
+  { params }: { params: { org: string; repo: string; branch: string } }
+)
+⋮----
+// Log for debugging
+⋮----
+// Get all feature specs
+⋮----
+// Check if the base directory exists
+⋮----
+// Create the directory if it doesn't exist
+⋮----
+// Read the directory to get all feature specs
+⋮----
+// Check if metadata file exists
+⋮----
+// Read metadata to extract basic info
+⋮----
+// Extract ID and title from metadata
+⋮----
+// Skip directories with missing or invalid metadata
+⋮----
+// Template generators
+function generateFinalSpecTemplate(id: string, title: string): string
+⋮----
+function generateDraftTemplate(id: string, title: string, version: string): string
+⋮----
+function generateMetadataTemplate(id: string, title: string, date: string, org: string, repo: string, branch: string): string
+⋮----
+function generateArchitectureTemplate(id: string, title: string): string
+⋮----
+function generatePlanningTemplate(id: string, title: string): string
+⋮----
+function generateTaskTemplate(id: string, title: string): string
+</file>
+
+<file path="app/api/repos/[org]/[repo]/[branch]/generate-overview/route.ts">
+import { NextRequest, NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+// Import from the new server-side LLM utility file
+import { createLLMProvider } from '@/lib/llm-server';
+import { repoMixAnalysisPrompt } from '@/lib/prompts/repoMixAnalysisPrompt'; // Adjusted relative path
+⋮----
+// Ensure storage directory exists (consider moving this to app startup if needed)
+⋮----
+// Note: Using absolute path based on user info. Be cautious if deploying elsewhere.
+// const storageBasePath = '/Users/madry/Documents/Dev/ai-repo-dashboard/storage/repos';
+⋮----
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { org: string; repo: string; branch: string } }
+)
+⋮----
+// Access params directly inside the function
+⋮----
+provider = body.provider || 'gemini'; // Default to gemini as requested
+⋮----
+// 1. Read repomix-output.xml
+⋮----
+// 2. Call LLM Provider
+⋮----
+// Use the imported comprehensive prompt
+⋮----
+${xmlContent.substring(0, 150000)}` } // Limit input size
+⋮----
+temperature: 0.5, // Adjust temperature as needed
+max_tokens: 4000   // Adjust max tokens as needed
+⋮----
+// 3. Ensure directory exists and save the Markdown file
+⋮----
+// Provide more specific feedback if possible
+</file>
+
+<file path="app/api/repos/[org]/[repo]/[branch]/get-overview/route.ts">
+import { NextRequest, NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+⋮----
+// Use the same base path determination as the generation endpoint
+⋮----
+// const storageBasePath = '/Users/madry/Documents/Dev/ai-repo-dashboard/storage/repos';
+⋮----
+export async function GET(
+  request: NextRequest,
+  // We won't use the params object directly anymore
+  context: { params: { org: string; repo: string; branch: string } }
+)
+⋮----
+// We won't use the params object directly anymore
+⋮----
+// Extract segments from the URL path
+⋮----
+const pathSegments = url.pathname.split('/').filter(Boolean); // Filter empty strings
+// Expected structure: ['api', 'repos', org, repo, branch, 'get-overview']
+⋮----
+// Check if file exists first
+⋮----
+// Read the file content
+⋮----
+// Return the content as plain text or JSON
+⋮----
+headers: { 'Content-Type': 'text/markdown' }, // Set correct content type
+⋮----
+// // Or return as JSON:
+// return NextResponse.json({ content: markdownContent }, { status: 200 });
+⋮----
+// Avoid leaking detailed error info unless necessary
+</file>
+
+<file path="app/api/repositories/clone/route.ts">
+import { NextRequest, NextResponse } from 'next/server';
+import { exec } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import util from 'util';
+import { parseRepositoryUrl } from '@/lib/github';
+import { 
+  REPO_STORAGE_DIR, 
+  getRepoCodeDir, 
+  getRepoBranchDir,
+  generateRepomixSummary
+} from '@/lib/services/repomix-generator';
+⋮----
+// Convert exec to promise-based
+⋮----
+/**
+ * Ensures the repository storage directory exists
+ */
+async function ensureStorageDir()
+⋮----
+/**
+ * POST /api/repositories/clone
+ * Clones a GitHub repository locally
+ */
+export async function POST(request: NextRequest)
+⋮----
+// Parse repository URL
+⋮----
+// Get default branch (assume 'main' for now)
+const branch = 'main'; // Could fetch this from GitHub API
+⋮----
+// Get paths
+⋮----
+// Ensure the storage directory exists
+⋮----
+// Check if repository already exists locally
+⋮----
+// Pull latest changes if repo already exists
+⋮----
+// Regenerate repomix summary
+⋮----
+// Create needed directories
+⋮----
+// Clone the repository to the code subdirectory
+⋮----
+// Generate repomix summary
+⋮----
+// Return success response with repository path
+</file>
+
+<file path="app/api/repositories/connect/route.ts">
+import { NextRequest, NextResponse } from 'next/server';
+import { 
+  parseRepositoryUrl, 
+  checkRepositoryExists, 
+  getRepositoryStats, 
+  RepositoryIdentifier 
+} from '@/lib/github';
+⋮----
+/**
+ * POST /api/repositories/connect
+ * Connects to a GitHub repository and returns its metadata
+ */
+export async function POST(request: NextRequest)
+⋮----
+// Parse repository URL
+⋮----
+// Check if repository exists and is accessible
+⋮----
+// Get repository statistics
+⋮----
+// Return repository data
+</file>
+
+<file path="app/api/repositories/debug/route.ts">
+import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+import { getRepomixSummaryPath, getCodePath } from '../repomix-summary/utils';
+⋮----
+export async function GET(request: Request)
+⋮----
+// Get URL parameters
+⋮----
+// Check storage directories
+⋮----
+// Check existence
+⋮----
+// Return debug info
+</file>
+
+<file path="app/api/repositories/file-content/route.ts">
+import { NextRequest, NextResponse } from 'next/server';
+import { 
+  getRepositoryContents, 
+  RepositoryIdentifier 
+} from '@/lib/github';
+⋮----
+/**
+ * POST /api/repositories/file-content
+ * Retrieves file content from a GitHub repository
+ */
+export async function POST(request: NextRequest)
+⋮----
+// Parse repository full name
+⋮----
+// Get file contents
+⋮----
+// GitHub API returns different response formats based on whether it's a file or directory
+⋮----
+// File content is base64 encoded
+⋮----
+// Return file content
+</file>
+
+<file path="app/api/repositories/generate-repomix/route.ts">
+import { NextRequest, NextResponse } from 'next/server';
+import { generateRepomixSummary } from '@/lib/services/repomix-generator';
+⋮----
+/**
+ * POST /api/repositories/generate-repomix
+ * Generates a repomix summary for a repository
+ */
+export async function POST(request: NextRequest)
+⋮----
+// Generate the repomix summary
+</file>
+
+<file path="app/api/repositories/local-file/route.ts">
+import { NextRequest, NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+⋮----
+// Set up the local storage directory for cloned repositories
+⋮----
+/**
+ * POST /api/repositories/local-file
+ * Retrieves file content from a locally cloned repository
+ */
+export async function POST(request: NextRequest)
+⋮----
+// Debug incoming request
+⋮----
+// Construct the full path to the file
+⋮----
+// Make sure the path stays inside the repository directory (prevent path traversal attacks)
+⋮----
+// Check if the repository exists
+⋮----
+// Check if the file exists
+⋮----
+// Check if the path is a directory
+⋮----
+// Read the file content
+⋮----
+// Log content details
+⋮----
+// Determine file type
+const extension = path.extname(fullPath).substring(1); // Remove the dot
+⋮----
+// Return file content and metadata
+</file>
+
+<file path="app/api/repositories/local-structure/route.ts">
+import { NextRequest, NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+import { FileNode } from '@/lib/github/types';
+⋮----
+// Set up the local storage directory for cloned repositories
+⋮----
+/**
+ * Recursively builds a file tree from the directory
+ * @param dir Directory to scan
+ * @param basePath Base path for relative paths
+ * @returns File tree structure
+ */
+async function buildFileTree(dir: string, basePath: string = ''): Promise<FileNode[]>
+⋮----
+// Skip .git directories and node_modules for performance
+⋮----
+// Sort directories first, then files alphabetically
+⋮----
+/**
+ * POST /api/repositories/local-structure
+ * Gets the file structure of a locally cloned repository
+ */
+export async function POST(request: NextRequest)
+⋮----
+// Construct the path to the repository
+⋮----
+// Check if the repository exists
+⋮----
+// Build the file tree
+⋮----
+// Return the file structure
+</file>
+
+<file path="app/api/repositories/repomix/route.ts">
+import { NextRequest, NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+⋮----
+// Create a simple in-memory cache for API results
+⋮----
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+⋮----
+export async function GET(request: NextRequest)
+⋮----
+// Get query parameters
+⋮----
+// Create a cache key
+⋮----
+// Check cache first
+⋮----
+// Validate parameters
+⋮----
+// Try multiple possible paths for the repository's repomix file
+⋮----
+// Original path
+⋮----
+// With branch
+⋮----
+// With 'repos' directory
+⋮----
+// With 'repos' directory and branch
+⋮----
+// Main/code variations
+⋮----
+// Try each path until we find one that exists
+⋮----
+// If no valid path was found, return an error
+⋮----
+// Read the repomix file
+⋮----
+// Extract summary from the content - no need for XML parsing
+// Since the file isn't valid XML, we'll extract content using string operations
+⋮----
+// Extract file overview from the beginning
+⋮----
+// Create a simplified summary response
+⋮----
+// Store in cache
+⋮----
+// Helper functions to extract data from the text content
+function extractLanguagesFromText(text: string):
+⋮----
+percentage: 0 // We can't determine percentages from the text
+⋮----
+function extractFeaturesFromText(text: string): string[]
+⋮----
+// Search for common keywords that might indicate features
+⋮----
+function countFilesFromText(text: string): number
+⋮----
+// Count occurrences of file paths
+⋮----
+function extractKeyFilesFromText(text: string): string[]
+⋮----
+// Look for lines that might contain file paths
+</file>
+
+<file path="app/api/repositories/repomix-files/route.ts">
+import { NextResponse } from 'next/server';
+import { getRepomixFileList, repomixSummaryExists } from '../repomix-summary/utils';
+⋮----
+export async function POST(request: Request)
+⋮----
+// Parse the request body
+⋮----
+// Check if repomix summary exists
+⋮----
+// Get the file list from the repomix summary
+⋮----
+// Return the files
+</file>
+
+<file path="app/api/repositories/repomix-summary/route.ts">
+import { NextResponse } from 'next/server';
+import { parseRepomixSummary, repomixSummaryExists } from './utils';
+⋮----
+export async function POST(request: Request)
+⋮----
+// Parse the request body
+⋮----
+// Check if repomix summary exists
+⋮----
+// Parse the repomix summary
+⋮----
+// Return the summary
+</file>
+
+<file path="app/api/repositories/repomix-summary/utils.ts">
+import fs from 'fs';
+import path from 'path';
+import { decode } from 'html-entities';
+import { RepomixSummary } from '@/lib/github/repomix';
 import {
-  ArrowLeft,
-  Code,
-  FileText,
-  History,
-  Info,
-  Languages,
-  Package,
-  SearchIcon,
-  TestTube,
-  X,
-  GitPullRequest,
-  GitBranch,
-  CheckCircle,
-  Shield,
-  Server,
-  Workflow,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { FileExplorer } from "@/components/file-explorer"
-import { CodeViewer } from "@/components/code-viewer"
-import { RepoSummary } from "@/components/repo-summary"
-import { ResizablePanel, ResizablePanelGroup, ResizableHandle } from "@/components/ui/resizable"
-import { Input } from "@/components/ui/input"
-import { SearchResults } from "@/components/search-results"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { ThemeToggle } from "@/components/theme-toggle"
+  getRepomixOutputPath,
+  getRepoCodeDir
+} from '@/lib/services/repomix-generator';
 ⋮----
-// Enhanced mock data
+// Import DOMParser with a try/catch to handle cases where it's not installed
 ⋮----
-// Handle file search
+parseFromString()
 ⋮----
-// Simulate search delay
+/**
+ * Get the path to the repomix output file for a repository
+ */
+export function getRepomixSummaryPath(owner: string, repo: string, branch = 'main'): string
 ⋮----
-// Search through file structure
+/**
+ * Get the path to the code directory for a repository
+ */
+export function getCodePath(owner: string, repo: string, branch = 'main'): string
 ⋮----
-// Recursive function to search through file structure
-const searchFiles = (files: any[], query: string): any[] =>
+/**
+ * Check if a repomix output file exists for a repository
+ */
+export function repomixSummaryExists(owner: string, repo: string, branch = 'main'): boolean
 ⋮----
-// Check if file name matches query
+/**
+ * Parse a repomix summary file and extract repository data
+ */
+export function parseRepomixSummary(owner: string, repo: string, branch = 'main'): RepomixSummary | null
 ⋮----
-// If it's a directory, search its children
+// Read the file content
 ⋮----
-const handleFileSelect = (path: string | null) =>
+// Parse the XML document
 ⋮----
-// Clear in-file search when selecting a new file
+// Helper function to get text content from an element safely
+const getTextContent = (element: Element | null): string =>
 ⋮----
-const clearSearch = () =>
+// Helper function to find multiple elements and extract their text
+const getElementsText = (selector: string): string[] =>
 ⋮----
-// Helper function to render status badges
-const renderStatusBadge = (status: string) =>
+// Extract overview from purpose element
 ⋮----
-<Tabs value=
+// Find all file elements for key files
 ⋮----
-{/* Overview Tab */}
+// Find files and directories count from directory_structure
 ⋮----
-{/* CI/CD Tab */}
+// Look for repository-spec.md file for additional info
 ⋮----
+// Extract features
+⋮----
+// Extract languages
+⋮----
+// Create mock percentages (descending)
+⋮----
+// Default return if no repository-spec.md found
+⋮----
+/**
+ * Helper function to find repository overview from the content
+ * @param content The XML content string
+ * @returns The repository overview
+ */
+function findRepositoryOverview(content: string): string
+⋮----
+// Look for overview in XML repository spec
+⋮----
+// Look for overview in file_summary purpose
+⋮----
+/**
+ * Helper function to find core features from the content
+ * @param content The XML content string
+ * @returns Array of core features
+ */
+function findCoreFeatures(content: string): string[]
+⋮----
+// Look for features in repository spec
+⋮----
+/**
+ * Helper function to find architecture from the content
+ * @param content The XML content string
+ * @returns Array of architecture components
+ */
+function findArchitecture(content: string): string[]
+⋮----
+// Look for architecture in planning docs
+⋮----
+/**
+ * Helper function to find key files in the XML document
+ */
+function findKeyFiles(xmlDoc: Document): string[]
+⋮----
+// Extract all file nodes
+⋮----
+// Limit to 20 key files
+⋮----
+/**
+ * Find a file node in the XML document by path
+ */
+function findFileNode(xmlDoc: Document, filePath: string): Element | null
+⋮----
+/**
+ * Get the list of files from a repomix summary
+ * @param owner Repository owner
+ * @param repo Repository name
+ * @param branch Repository branch
+ * @returns Array of file paths
+ */
+export function getRepomixFileList(owner: string, repo: string, branch = 'main'): string[]
+⋮----
+// Get the summary path
+⋮----
+// Check if the file exists
+⋮----
+// Read the file content
+⋮----
+// Parse the XML document
+⋮----
+// Find all file nodes in the document
+⋮----
+// Extract the file paths
+</file>
 
+<file path="app/api/repositories/repomix-xml/route.ts">
+import { NextRequest, NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 ⋮----
-{/* Tools Tab */}
+// Create a simple in-memory cache for API results
 ⋮----
-{/* PR Tab */}
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 ⋮----
-{/* Code Explorer with Split View */}
+export async function GET(request: NextRequest)
 ⋮----
-{/* File Explorer Panel */}
+// Get query parameters
 ⋮----
-{/* Search Bar */}
+// Create a cache key
 ⋮----
-{/* File Explorer or Search Results */}
+// Check cache first
 ⋮----
-{/* Resizable Handle */}
+// Validate parameters
 ⋮----
-{/* Code/Docs Viewer Panel */}
+// Try multiple possible paths for the repository's repomix file
+⋮----
+// Original path
+⋮----
+// With branch
+⋮----
+// With 'repos' directory
+⋮----
+// With 'repos' directory and branch
+⋮----
+// Main/code variations
+⋮----
+// Try each path until we find one that exists
+⋮----
+// If no valid path was found, return an error
+⋮----
+// Read the repomix file
+⋮----
+// Check if the content is valid XML
+⋮----
+// If it's not XML, create a simple XML wrapper for the content
+⋮----
+// Store in cache
+⋮----
+// Return the content as XML
 </file>
 
 <file path="app/dependencies/loading.tsx">
 export default function Loading()
-</file>
-
-<file path="app/dependencies/page.tsx">
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import {
-  ArrowLeft,
-  Search,
-  X,
-  ZoomIn,
-  ZoomOut,
-  RefreshCw,
-  Download,
-  Info,
-  ChevronRight,
-  FileCode,
-  FolderOpen,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Slider } from "@/components/ui/slider"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { DependencyGraph } from "@/components/dependency-graph"
-import { toast } from "@/components/ui/use-toast"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { cn } from "@/lib/utils"
-⋮----
-// Mock data for dependency analysis
-⋮----
-// Mock file structure for the repository
-⋮----
-// Handle file search
-⋮----
-// Recursive function to search through file structure
-const searchFiles = (files: any[], query: string): any[] =>
-⋮----
-// Check if file name matches query
-⋮----
-// If it's a directory, search its children
-⋮----
-// Handle refresh of dependency data
-const handleRefreshData = () =>
-⋮----
-// Simulate API call
-⋮----
-// Handle download of dependency data
-const handleDownloadData = () =>
-⋮----
-// In a real app, this would trigger a file download
-⋮----
-// Format date to be more readable
-const formatDate = (dateString: string) =>
-⋮----
-// Toggle folder expansion
-const toggleFolder = (folder: string) =>
-⋮----
-// Render file structure recursively
-⋮----
-className=
-⋮----
-// Render search results
-⋮----
-
-⋮----
-onValueChange=
-⋮----
-{/* Mock dependencies */}
-⋮----
-{/* Mock dependents */}
 </file>
 
 <file path="app/features/[id]/files/page.tsx">
@@ -636,6 +2241,828 @@ const handleCreatePR = () =>
 // Navigate to the template page
 </file>
 
+<file path="app/repo/[org]/[repo]/[branch]/dashboard/loading.tsx">
+export default function DashboardLoading()
+</file>
+
+<file path="app/repo/[org]/[repo]/[branch]/dashboard/page.tsx">
+import { useEffect, useCallback } from "react"
+import { useState } from "react"
+import Link from "next/link"
+import { useRouter, useParams } from "next/navigation"
+import {
+  ArrowLeft,
+  Code,
+  FileText,
+  History,
+  Info,
+  Languages,
+  Package,
+  SearchIcon,
+  TestTube,
+  X,
+  GitPullRequest,
+  GitBranch,
+  CheckCircle,
+  Shield,
+  Server,
+  Workflow,
+  FileCode,
+  HardDrive,
+  CloudOff,
+  Brain,
+  Plus,
+  Loader2,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { FileExplorer } from "@/components/file-explorer"
+import { CodeViewer } from "@/components/code-viewer"
+import { RepoSummary } from "@/components/repo-summary"
+import { ResizablePanel, ResizablePanelGroup, ResizableHandle } from "@/components/ui/resizable"
+import { Input } from "@/components/ui/input"
+import { SearchResults } from "@/components/search-results"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { RepositoryInfo } from "@/components/repository-info"
+import { useRepository } from "@/lib/github/context"
+import { AIAnalysis } from "@/components/ai-analysis"
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { toast } from "@/components/ui/use-toast"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
+import { FileNode } from "@/lib/github/types"
+⋮----
+// Check if params are valid
+⋮----
+// Get current repository data
+⋮----
+// Load repository file structure
+⋮----
+// Use cached file structure if available
+⋮----
+// Otherwise fetch from API
+⋮----
+// Initialize repository from URL parameters
+⋮----
+// Skip if we already have the right repository selected
+⋮----
+// Set the current repository based on URL parameters
+⋮----
+// Check if the repository is in the list of repositories
+⋮----
+// If it's already in the list, just select it
+⋮----
+// Repository not found in context, we need to fetch it
+⋮----
+// Try to connect to the repository
+⋮----
+// Try to connect by constructing GitHub URL
+⋮----
+// Refresh the page to ensure context is updated
+// router.refresh();
+⋮----
+// Add an effect to handle search
+⋮----
+// Search in the file structure
+⋮----
+// Handle navigation
+const handleNavigation = (path: string) =>
+⋮----
+// Add utility functions for file handling
+const handleFileSelect = async (path: string | null) =>
+⋮----
+// Get file content
+⋮----
+// Try to find the file in the structure to get the correct path
+⋮----
+// Fall back to normalized path
+⋮----
+// Determine file language
+⋮----
+// Set language based on file extension
+⋮----
+// Helper function to search files
+const searchFiles = (files: any[], query: string): any[] =>
+⋮----
+const searchInFiles = (items: any[], currentPath: string = "") =>
+⋮----
+// Check if file name contains the query
+⋮----
+// Recursively search in directories
+⋮----
+// Filter to show the code folder contents
+const filterCodeFolder = (files: any[]): any[] =>
+⋮----
+// Find the code folder (often named "code" or "main")
+⋮----
+// If found, return its children
+⋮----
+// Otherwise return the original files
+⋮----
+// Get the name of the code folder
+const getCodeFolderName = (files: any[]): string =>
+⋮----
+// Add a utility function to normalize file paths
+const normalizeFilePath = (path: string): string =>
+⋮----
+// Remove leading slashes
+⋮----
+// If it doesn't start with main/ or code/ and doesn't include a full directory path
+⋮----
+// It's likely just a filename, which might be found anywhere in the structure
+⋮----
+// Look for common directory patterns and normalize them
+⋮----
+// Helper function to find a file in the structure by its path/name
+const findFileByPath = (files: any[], path: string): any =>
+⋮----
+// Normalize the target path once
+⋮----
+// Normalize the path from the structure *for comparison*
+⋮----
+// Compare normalized paths
+⋮----
+// Check if file path ends with the normalized path (also compare normalized)
+⋮----
+// Recursive search in children
+⋮----
+// If not found in this branch, return null
+⋮----
+// Clear search
+const clearSearch = () =>
+⋮----
+{/* Header */}
+⋮----
+{/* Main content */}
+⋮----
+{/* Repository info */}
+⋮----
+{/* Add other repository info badges here */}
+⋮----
+{/* Content here */}
+{/* Replace this with the actual dashboard content */}
+⋮----
+{/* Repository Dashboard Tabs */}
+⋮----
+{/* Repository AI Summary Card */}
+⋮----
+<Tabs value=
+</file>
+
+<file path="app/repo/[org]/[repo]/[branch]/dependencies/loading.tsx">
+export default function DependenciesLoading()
+</file>
+
+<file path="app/repo/[org]/[repo]/[branch]/dependencies/page.tsx">
+import { useState, useEffect, useCallback } from "react"
+import Link from "next/link"
+import { useParams, useRouter } from "next/navigation"
+import {
+  ArrowLeft,
+  Search,
+  X,
+  ZoomIn,
+  ZoomOut,
+  RefreshCw,
+  Download,
+  Info,
+  ChevronRight,
+  FileCode,
+  FolderOpen,
+  Package,
+  FileText,
+  GitBranch,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { DependencyGraph } from "@/components/dependency-graph"
+import { toast } from "@/components/ui/use-toast"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
+import { useRepository } from "@/lib/github/context"
+import { FileExplorer } from "@/components/file-explorer"
+⋮----
+// Define the type based on DependencyGraphProps['dependencyData']
+type DependencyGraphDataType = {
+  nodes: { id: string; label: string }[];
+  edges: { source: string; target: string; type: string }[];
+} | null;
+⋮----
+// Define type for the API response
+interface DependenciesApiResponse {
+  graphData: DependencyGraphDataType; // Use the type derived before
+  fileStructure: FileStructureItem[];
+}
+⋮----
+graphData: DependencyGraphDataType; // Use the type derived before
+⋮----
+// Local definition
+interface FileStructureItem {
+  name: string;
+  type: 'directory' | 'file';
+  path: string; 
+  children?: FileStructureItem[];
+}
+⋮----
+// Initialize repository from URL parameters
+⋮----
+// Skip if we already have the right repository selected
+⋮----
+// Set the current repository based on URL parameters
+⋮----
+// Check if the repository is in the list of repositories
+⋮----
+// If it's already in the list, just select it
+⋮----
+// Repository not found in context, we need to fetch it
+⋮----
+// Try to connect to the repository
+⋮----
+// Try to connect by constructing GitHub URL
+⋮----
+// Fetch dependency graph data and file structure on load
+⋮----
+const fetchData = async () =>
+⋮----
+setFileStructure([]); // Clear previous structure
+⋮----
+// Expect combined data
+⋮----
+// Debug: Log a sample of the edges to check their format
+⋮----
+setFileStructure(data.fileStructure); // Set the file structure state
+⋮----
+// Create a more robust graph representation with normalized paths
+⋮----
+// Ensure source and target are strings
+⋮----
+setDependencyGraph(normalizedGraph); // Set graph data with normalized edges
+⋮----
+// Set initial selected file
+⋮----
+setFileStructure([]); // Clear structure on error
+⋮----
+// Handle missing parameters
+⋮----
+// Redirect to repo page
+⋮----
+// Handle navigation
+const handleNavigation = (path: string) =>
+⋮----
+// Helper function to find a file in the file structure by path
+const findFileByPath = (files: FileStructureItem[], path: string): FileStructureItem | null =>
+⋮----
+{/* Header */}
+⋮----
+{/* Main content */}
+⋮----
+{/* Repository info */}
+⋮----
+{/* Content here */}
+{/* ... Remaining dependencies content ... */}
+⋮----
+{/* Left column: controls */}
+⋮----
+{/* Add File Tree */}
+⋮----
+// Only proceed if we have a valid file path
+⋮----
+// Only select if it's a file, not a directory
+⋮----
+{/* Zoom Controls */}
+⋮----
+onValueChange=
+⋮----
+{/* Depth Controls */}
+⋮----
+{/* Show Indirect Dependencies */}
+⋮----
+{/* Search Input */}
+⋮----
+{/* Right column: graph */}
+⋮----
+{/* Graph visualization - takes most of the height */}
+⋮----
+// Find dependencies and dependents for the selected node
+⋮----
+// Check if nodeId is normalized
+⋮----
+// Find direct dependencies (outgoing edges)
+⋮----
+// Log a few edges to see their structure
+⋮----
+// Extract clean file paths for comparison
+⋮----
+// Various matching strategies to handle different path formats
+⋮----
+// If file paths match, add to dependencies/dependents
+⋮----
+// Only add unique dependencies
+⋮----
+// Only add unique dependents
+⋮----
+{/* File Info panel - always visible as footer of the card */}
+⋮----
+{/* Dependencies */}
+⋮----
+// Get the filename for display
+⋮----
+title={dep} // Show full path on hover
+⋮----
+{/* Dependents */}
+⋮----
+// Get the filename for display
+⋮----
+title={dep} // Show full path on hover
+</file>
+
+<file path="app/repo/[org]/[repo]/[branch]/feature-specs/[id]/loading.tsx">
+export default function FeatureSpecLoading()
+</file>
+
+<file path="app/repo/[org]/[repo]/[branch]/feature-specs/[id]/page.tsx">
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { useParams, useRouter } from "next/navigation"
+import {
+  ArrowLeft,
+  FileText,
+  Package,
+  GitBranch,
+  CalendarDays,
+  Clock,
+  Edit,
+  Trash2,
+  CheckCircle2,
+  AlertTriangle,
+  Save,
+  X,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
+import { toast } from "@/components/ui/use-toast"
+import { Label } from "@/components/ui/label"
+import { useRepository } from "@/lib/github/context"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+⋮----
+// Define types
+interface FeatureSpec {
+  id: string
+  title: string
+  status: "draft" | "in-progress" | "completed" | "archived"
+  createdAt: string
+  updatedAt: string
+  description: string
+  problem: string
+  outOfScope: string
+  goals?: string
+  implementation?: string
+  testing?: string
+  notes?: string
+}
+⋮----
+export default function FeatureSpecPage()
+⋮----
+// Editable feature state
+⋮----
+// Initialize repository from URL parameters
+⋮----
+// Skip if we already have the right repository selected
+⋮----
+// Set the current repository based on URL parameters
+⋮----
+// Check if the repository is in the list of repositories
+⋮----
+// If it's already in the list, just select it
+⋮----
+// Repository not found in context, we need to fetch it
+⋮----
+// Try to connect to the repository
+⋮----
+// Try to connect by constructing GitHub URL
+⋮----
+// Check if params are valid
+⋮----
+// Load feature spec
+⋮----
+const fetchFeature = async () =>
+⋮----
+// Handle navigation
+const handleNavigation = (path: string) =>
+⋮----
+// Handle feature update
+const handleSaveFeature = async () =>
+⋮----
+// Handle feature deletion
+const handleDeleteFeature = async () =>
+⋮----
+// Navigate back to feature specs list
+⋮----
+// Handle cancel editing
+const handleCancelEditing = () =>
+⋮----
+// Format date for display
+const formatDate = (dateString: string) =>
+⋮----
+// Status badge component
+const StatusBadge = (
+⋮----
+{/* Header */}
+⋮----
+<Button variant="outline" size="sm" onClick=
+⋮----
+{/* Main content */}
+⋮----
+{/* Repository info */}
+⋮----
+// Loading state
+⋮----
+// Error state
+⋮----
+// Feature content
+⋮----
+{/* Feature header */}
+⋮----
+<span>Created:
+⋮----
+{/* Status selection when editing */}
+⋮----
+{/* Feature content tabs */}
+⋮----
+{/* Overview tab */}
+⋮----
+{/* Implementation tab */}
+⋮----
+{/* Testing tab */}
+⋮----
+{/* Notes tab */}
+</file>
+
+<file path="app/repo/[org]/[repo]/[branch]/feature-specs/new/form/page.tsx">
+import { useState, useEffect, ChangeEvent } from "react"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
+import { ArrowLeft, Check, ChevronsUpDown, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Slider } from "@/components/ui/slider"
+import { toast } from "@/components/ui/use-toast"
+⋮----
+// --- Types ---
+interface FormQuestion {
+  id: string; // Generated from question text for keying
+  blockName?: string;
+  question: string;
+  type: 'radio' | 'checkbox list' | 'text area' | 'dropdown' | 'slider' | 'text'; // Added 'text' as default
+  options?: string[];
+}
+⋮----
+id: string; // Generated from question text for keying
+⋮----
+type: 'radio' | 'checkbox list' | 'text area' | 'dropdown' | 'slider' | 'text'; // Added 'text' as default
+⋮----
+interface FormAnswers {
+  [questionId: string]: string | string[] | number | undefined;
+}
+⋮----
+// Type for the object stored in localStorage
+interface StoredIdeaData {
+  idea: string;
+  markdown: string;
+}
+⋮----
+// --- Helper Functions ---
+⋮----
+// Basic slugify for generating unique IDs from question text
+function slugify(text: string): string
+⋮----
+.replace(/\s+/g, '-')        // Replace spaces with -
+.replace(/[^\w-]+/g, '')    // Remove all non-word chars
+.replace(/--+/g, '-')        // Replace multiple - with single -
+.replace(/^-+/, '')          // Trim - from start of text
+.replace(/-+$/, '');         // Trim - from end of text
+⋮----
+// Parses the Markdown structure generated by FormArchitect-GPT
+function parseFormMarkdown(markdown: string): FormQuestion[]
+⋮----
+// Filter out empty lines FIRST
+⋮----
+return; // Skip if not enough lines for name, question, type
+⋮----
+// Adjusted to check lines[1] and lines[2] which should now reliably hold question/type
+⋮----
+// Extract options from lines AFTER the type line (index 2)
+⋮----
+// --- Component ---
+⋮----
+// --- Retrieve stored data from localStorage ---
+⋮----
+// --- DEBUG LOG: Log the raw string ---
+⋮----
+// --- END DEBUG LOG ---
+⋮----
+// --- DEBUG LOG: Log the markdown to be parsed ---
+⋮----
+// --- END DEBUG LOG ---
+⋮----
+// --- Parse the retrieved Markdown ---
+⋮----
+// Throw the specific error here
+⋮----
+// --- Initialize answers state ---
+⋮----
+initialAnswers[q.id] = q.type === 'checkbox list' ? [] : q.type === 'slider' ? (parseInt(q.options?.[0] || '1', 10)) : ''; // Default text/others to empty string
+⋮----
+// --- Event Handlers ---
+const handleAnswerChange = (questionId: string, value: string | string[] | number | undefined) =>
+⋮----
+// --- DEBUGGING LOGS ---
+⋮----
+// --- END DEBUGGING LOGS ---
+⋮----
+// --- DEBUGGING LOG ---
+⋮----
+// --- END DEBUGGING LOG ---
+⋮----
+// TODO: Consider adding validation/formatting for the ID field on blur/change if desired
+⋮----
+const handleCheckboxChange = (questionId: string, option: string, checked: boolean) =>
+⋮----
+const handleSubmit = async () =>
+⋮----
+// Ensure featureIdea and ideaId are available
+⋮----
+// --- Call the backend API to generate spec files ---
+⋮----
+ideaId, // Pass the ideaId for potential cleanup/linking
+⋮----
+// --- Success ---
+⋮----
+// Clean up localStorage for the completed idea
+⋮----
+// Navigate to the new feature spec page using the ID from the response
+⋮----
+setIsSubmitting(false); // Keep user on the form page on error
+⋮----
+// No need to set submitting to false on success due to navigation
+⋮----
+// --- Rendering Logic ---
+⋮----
+// Assuming options provide min and max, or default
+⋮----
+onValueChange=
+⋮----
+case 'text': // Fallback for simple text input
+⋮----
+onChange=
+⋮----
+{/* Optional: Add icon based on blockName? */}
+</file>
+
+<file path="app/repo/[org]/[repo]/[branch]/feature-specs/new/page.tsx">
+import { useState } from "react"
+import { useParams, useRouter } from "next/navigation"
+import { ArrowLeft, Sparkles } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { toast } from "@/components/ui/use-toast"
+import Link from "next/link"
+⋮----
+const handleGenerateForm = async () =>
+⋮----
+// --- Call the backend API to generate form ---
+⋮----
+// --- Store idea and markdown in localStorage ---
+// Use ideaId as the key for the stored object
+⋮----
+// --- Navigate to the form page ---
+// Pass only the ideaId
+⋮----
+setIsGenerating(false) // Only set to false on error
+⋮----
+onChange=
+</file>
+
+<file path="app/repo/[org]/[repo]/[branch]/feature-specs/layout.tsx">
+import { ReactNode } from "react"
+⋮----
+interface FeatureSpecsLayoutProps {
+  children: ReactNode
+}
+⋮----
+export default function FeatureSpecsLayout(
+</file>
+
+<file path="app/repo/[org]/[repo]/[branch]/feature-specs/loading.tsx">
+export default function FeatureSpecsLoading()
+</file>
+
+<file path="app/repo/[org]/[repo]/[branch]/feature-specs/page.tsx">
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { useParams, useRouter } from "next/navigation"
+import {
+  ArrowLeft,
+  FileText,
+  Plus,
+  Search,
+  Package,
+  GitBranch,
+  CalendarDays,
+  CheckCircle2,
+  Clock,
+  Filter,
+  X,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ThemeToggle } from "@/components/theme-toggle"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
+import { toast } from "@/components/ui/use-toast"
+import { useRepository } from "@/lib/github/context"
+⋮----
+// Define types
+interface FeatureSpec {
+  id: string
+  title: string
+  status: "draft" | "in-progress" | "completed" | "archived"
+  createdAt: string
+  updatedAt: string
+  description: string
+  problem: string
+  outOfScope: string
+}
+⋮----
+// Initialize repository from URL parameters
+⋮----
+// Skip if we already have the right repository selected
+⋮----
+// Set the current repository based on URL parameters
+⋮----
+// Check if the repository is in the list of repositories
+⋮----
+// If it's already in the list, just select it
+⋮----
+// Repository not found in context, we need to fetch it
+⋮----
+// Try to connect to the repository
+⋮----
+// Try to connect by constructing GitHub URL
+⋮----
+// Check if params are valid
+⋮----
+// Load feature specs
+⋮----
+const fetchFeatures = async () =>
+⋮----
+// Handle navigation
+const handleNavigation = (path: string) =>
+⋮----
+// Filter features by search query and status
+⋮----
+{/* Header */}
+⋮----
+{/* Main content */}
+⋮----
+{/* Repository info */}
+⋮----
+{/* Features header */}
+⋮----
+{/* Search and filters */}
+⋮----
+{/* Status filters */}
+⋮----
+{/* Features list */}
+</file>
+
+<file path="app/repo/[org]/[repo]/[branch]/layout.tsx">
+import { ReactNode } from "react"
+⋮----
+interface BranchLayoutProps {
+  children: ReactNode
+}
+⋮----
+export default function BranchLayout(
+</file>
+
+<file path="app/repo/[org]/[repo]/layout.tsx">
+import { ReactNode } from "react"
+⋮----
+interface RepoLayoutProps {
+  children: ReactNode
+}
+⋮----
+export default function RepoLayout(
+</file>
+
+<file path="app/repo/[org]/layout.tsx">
+import { ReactNode } from "react"
+⋮----
+interface OrgLayoutProps {
+  children: ReactNode
+}
+⋮----
+export default function OrgLayout(
+</file>
+
+<file path="app/repo/layout.tsx">
+import { ReactNode } from "react"
+⋮----
+interface RepoLayoutProps {
+  children: ReactNode
+}
+⋮----
+export default function RepoLayout(
+</file>
+
+<file path="app/repo/page.tsx">
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { Github, Lock } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { toast } from "@/components/ui/use-toast"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { useRepository } from "@/lib/github/context"
+⋮----
+const saveUrlToHistory = (url: string) =>
+⋮----
+const handleConnect = async () =>
+⋮----
+placeholder="https://github.com/username/repository"
+⋮----
+onChange=
+⋮----
+Example: https://github.com/facebook/react or https://github.com/facebook/react/tree/main
+</file>
+
 <file path="app/templates/[id]/page.tsx">
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -723,49 +3150,6 @@ import { ThemeToggle } from "@/components/theme-toggle"
 // Extract unique categories from template data
 ⋮----
 // Filter templates based on search query and selected category
-</file>
-
-<file path="app/globals.css">
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-⋮----
-@layer base {
-⋮----
-:root {
-⋮----
-.dark {
-⋮----
-* {
-⋮----
-@apply border-border;
-⋮----
-body {
-</file>
-
-<file path="app/layout.tsx">
-import type React from "react"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-⋮----
-import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
-⋮----
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>)
-</file>
-
-<file path="app/page.tsx">
-import { Github } from "lucide-react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ThemeToggle } from "@/components/theme-toggle"
-⋮----
-export default function Home()
 </file>
 
 <file path="components/ui/accordion.tsx">
@@ -878,34 +3262,6 @@ type CarouselContextProps = {
 } & CarouselProps
 ⋮----
 function useCarousel()
-</file>
-
-<file path="components/ui/chart.tsx">
-import { cn } from "@/lib/utils"
-⋮----
-// Format: { THEME_NAME: CSS_SELECTOR }
-⋮----
-export type ChartConfig = {
-  [k in string]: {
-    label?: React.ReactNode
-    icon?: React.ComponentType
-  } & (
-    | { color?: string; theme?: never }
-    | { color?: never; theme: Record<keyof typeof THEMES, string> }
-  )
-}
-⋮----
-type ChartContextProps = {
-  config: ChartConfig
-}
-⋮----
-function useChart()
-⋮----
-className=
-⋮----
-<div className=
-⋮----
-// Helper to extract item config from a payload.
 </file>
 
 <file path="components/ui/checkbox.tsx">
@@ -1202,15 +3558,6 @@ import { cn } from "@/lib/utils"
 className=
 </file>
 
-<file path="components/ui/sonner.tsx">
-import { useTheme } from "next-themes"
-import { Toaster as Sonner } from "sonner"
-⋮----
-type ToasterProps = React.ComponentProps<typeof Sonner>
-⋮----
-const Toaster = (
-</file>
-
 <file path="components/ui/switch.tsx">
 import { cn } from "@/lib/utils"
 ⋮----
@@ -1345,90 +3692,110 @@ const dismiss = () => dispatch(
 function useToast()
 </file>
 
-<file path="components/code-viewer.tsx">
-import type React from "react"
+<file path="components/ai-analysis.tsx">
+import React from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { RefreshCw, Key, AlertCircle, Check, RotateCcw, Cpu, Download } from "lucide-react";
+import { useLLMApiKey } from "@/lib/llm";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import Markdown from 'markdown-to-jsx';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import MermaidDiagram from './mermaid-diagram';
 ⋮----
-import { useEffect, useState, useRef } from "react"
-import { Loader2, Copy, Check, ChevronDown, Search, X, ChevronUp, ChevronRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Input } from "@/components/ui/input"
-import { cn } from "@/lib/utils"
-⋮----
-interface CodeViewerProps {
-  filePath: string | null
-  searchTerm?: string
-  onSearchChange?: (term: string) => void
+// Define the structure for parsed sections
+interface AnalysisSection {
+  title: string;
+  content: string;
 }
 ⋮----
-interface CodeLine {
-  number: number
-  content: string
-  isFoldable?: boolean
-  isFolded?: boolean
-  indentation: number
-  highlighted?: boolean
-  hidden?: boolean
+// Function to parse the markdown content by H2 headers
+const parseMarkdownSections = (markdown: string): AnalysisSection[] =>
+⋮----
+// Split by H2 headers (## followed by space)
+⋮----
+const title = lines[0].trim(); // First line is the title
+const content = lines.slice(1).join('\n').trim(); // Rest is content
+if (title && content) { // Only add if both title and content exist
+⋮----
+interface AIAnalysisProps {
+  org?: string;
+  repo?: string;
+  branch?: string;
+  repositoryName?: string;
 }
 ⋮----
-// Update local search term when prop changes
+// State for the full markdown and parsed sections
 ⋮----
-// Determine language based on file extension
+// Helper to construct API URL
+const getApiUrl = (action: 'generate-overview' | 'get-overview'): string | null =>
 ⋮----
-// Simulate fetching code content
+// Fetch the existing overview file
 ⋮----
-// Mock code content based on file path
+// Generate new repository analysis
+const generateAnalysis = async () =>
 ⋮----
-// Process code into lines with folding information
+// If generation is successful, fetch the new overview
 ⋮----
-// Handle search within file
+// If generation failed because repomix wasn't found
 ⋮----
-// We need to avoid updating codeLines if the highlighted state hasn't actually changed
-// This is likely causing the infinite loop
+// Save API key
+const handleSaveApiKey = () =>
 ⋮----
-// Scroll to first result if any
+// Handle provider change
+const handleProviderChange = (value: string) =>
 ⋮----
-const handleCopyCode = () =>
+// Fetch overview when component mounts or repo details change
 ⋮----
-const toggleFold = (lineIndex: number) =>
+// Clear state if repo details are missing
 ⋮----
-// If folding, hide all lines with greater indentation until we reach a line with equal or less indentation
+// --- Define overrides for markdown-to-jsx ---
 ⋮----
-// If unfolding, show all lines until we reach a line with equal or less indentation
+// Remove the 'pre' override entirely
+/*
+        pre: {
+           // ... old pre override logic ...
+        },
+        */
+// Override 'code' to handle inline, blocks, and mermaid
 ⋮----
-const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+const codeContent = String(children).replace(/\n$/, ''); // Get the code string
 ⋮----
-const clearSearch = () =>
+// Render MermaidDiagram, potentially wrapping it if needed
 ⋮----
-const navigateSearch = (direction: "next" | "prev") =>
+// Render other language blocks wrapped in <pre>
 ⋮----
-// Scroll to the selected search result
+// Assume inline code if no language class is found
 ⋮----
-// Add this function to apply basic syntax highlighting
-const applyBasicSyntaxHighlighting = (content: string, language: string) =>
+// Add overrides for other elements if needed (e.g., tables, headings for styling)
+// table: { component: 'table', props: { className: 'table-auto ...' } },
 ⋮----
-// This is a very simplified version of syntax highlighting
-// In a real app, you'd want to use a proper tokenizer
+// console.log("[AIAnalysis] Rendering with markdownOptions:", markdownOptions); // Keep commented for now
 ⋮----
-// Highlight keywords
+{/* API Key Configuration */}
 ⋮----
-// Highlight strings
+onChange=
 ⋮----
-// Highlight comments
+<Button onClick=
 ⋮----
-// Highlight numbers
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
 ⋮----
-{/* In-file search */}
-⋮----
-{/* Line numbers */}
-⋮----
-{/* Code content */}
-⋮----
-// Apply basic syntax highlighting
-⋮----
-// Highlight search matches if any
-⋮----
-className=
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+URL.revokeObjectURL(url);
 </file>
 
 <file path="components/dependency-details.tsx">
@@ -1463,126 +3830,6 @@ interface Dependency {
 // Helper function to generate random names
 function getRandomName()
 ⋮----
-</file>
-
-<file path="components/dependency-graph.tsx">
-import { useEffect, useRef, useState } from "react"
-⋮----
-import { Loader2 } from "lucide-react"
-⋮----
-interface DependencyGraphProps {
-  filePath: string
-  depthLevel: number
-  showIndirectDeps: boolean
-  zoomLevel: number
-  onNodeSelect: (nodeId: string) => void
-}
-⋮----
-interface Node {
-  id: string
-  group: number
-  type: string
-  level: number
-  isRoot?: boolean
-}
-⋮----
-interface Link {
-  source: string
-  target: string
-  value: number
-  type: string
-}
-⋮----
-interface GraphData {
-  nodes: Node[]
-  links: Link[]
-}
-⋮----
-export function DependencyGraph({
-  filePath,
-  depthLevel,
-  showIndirectDeps,
-  zoomLevel,
-  onNodeSelect,
-}: DependencyGraphProps)
-⋮----
-// Generate mock data for the graph based on the selected file
-⋮----
-// Simulate API call to get dependency data
-⋮----
-// Generate mock dependency graph for the selected file
-⋮----
-// Add the root node (selected file)
-⋮----
-// Generate dependencies (files that the selected file imports)
-⋮----
-// Add dependency nodes and links
-⋮----
-// Add indirect dependencies if enabled
-⋮----
-// Generate dependents (files that import the selected file)
-⋮----
-// Add dependent nodes and links
-⋮----
-// Add indirect dependents if enabled
-⋮----
-// Render the graph
-⋮----
-// Clear previous graph
-⋮----
-// Set up the SVG
-⋮----
-// Create a group for zoom/pan
-⋮----
-// Add zoom behavior
-⋮----
-// Set initial zoom level
-⋮----
-// Create the simulation
-⋮----
-// Define color scale for node groups
-⋮----
-// Create links
-⋮----
-// Create nodes
-⋮----
-// Add tooltips
-⋮----
-// Add labels
-⋮----
-// Update node and link positions on simulation tick
-⋮----
-// Drag function for nodes
-function drag(simulation: any)
-⋮----
-function dragstarted(event: any)
-⋮----
-function dragged(event: any)
-⋮----
-function dragended(event: any)
-⋮----
-// Add legend
-⋮----
-// Helper function to get file type from path
-function getFileType(path: string): string
-⋮----
-// Helper function to generate mock dependencies
-function generateMockDependencies(filePath: string, maxDepth: number): any[]
-⋮----
-// Mock data based on file path
-⋮----
-// Add indirect dependencies if depth > 1
-⋮----
-// Generate random dependencies for other files
-⋮----
-// Helper function to generate mock dependents
-function generateMockDependents(filePath: string, maxDepth: number): any[]
-⋮----
-// Mock data based on file path
-⋮----
-// Add indirect dependents if depth > 1
-⋮----
-// Generate random dependents for other files
 </file>
 
 <file path="components/dependency-list.tsx">
@@ -1719,12 +3966,72 @@ onChange=
 <span>
 </file>
 
-<file path="components/repo-summary.tsx">
-interface RepoSummaryProps {
-  summary: string
+<file path="components/mermaid-diagram.tsx">
+import React, { useEffect, useRef, useState } from 'react';
+import mermaid from 'mermaid';
+import { Card, CardContent, CardHeader } from './ui/card'; // Added CardHeader
+import { AlertCircle, Code, Eye, RefreshCw } from 'lucide-react'; // Added Code, Eye, RefreshCw icons
+import { Button } from './ui/button'; // Added Button
+import { Separator } from './ui/separator'; // Added Separator
+⋮----
+interface MermaidDiagramProps {
+  chart: string;
 }
 ⋮----
-export function RepoSummary(
+// Generate a unique ID for each diagram
+⋮----
+const generateId = () => `mermaid-diagram-$
+⋮----
+// Initialize Mermaid once globally (safer approach)
+⋮----
+theme: 'default', // Or 'dark', 'neutral', 'forest'
+securityLevel: 'loose', // Adjust as needed, 'strict' is safer but more restrictive
+// Add other mermaid configurations if needed
+⋮----
+const [uniqueId] = useState(generateId()); // Stable unique ID per instance
+const [showCode, setShowCode] = useState(false); // State for toggling code view
+⋮----
+const renderDiagram = async () =>
+⋮----
+// Guard clause: Only render if not showing code and chart is present
+⋮----
+if (svgContent) setSvgContent(null); // Clear SVG if switching to code view or chart disappears
+⋮----
+setError(null); // Clear previous errors
+// setSvgContent(null); // Clear previous SVG immediately to show loading
+⋮----
+// Use mermaid.render()
+⋮----
+// const bindFunctions = renderResult.bindFunctions; // Optional: if you need interactions
+⋮----
+// console.log('[Mermaid] SVG:', svg); // Uncomment for detailed SVG logging
+⋮----
+// Optional: Call bindFunctions if needed for interactions
+// if (bindFunctions && containerRef.current) {
+//   bindFunctions(containerRef.current);
+// }
+⋮----
+setSvgContent(null); // Clear SVG on error
+⋮----
+// Use setTimeout to ensure the DOM element is ready and avoid potential race conditions
+⋮----
+// Clean up the rendered element if necessary (might not be strictly needed)
+⋮----
+}, [chart, uniqueId, showCode]); // Effect dependencies
+⋮----
+{/* Optional Header with Toggle Button */}
+⋮----
+<CardContent ref={containerRef} className="p-4 text-center min-h-[100px]"> {/* Added min-height */}
+⋮----
+// Display Raw Code
+⋮----
+// Render the SVG directly using dangerouslySetInnerHTML
+⋮----
+// Use the unique ID as the container ID IF mermaid.render needs it,
+// otherwise, just use dangerouslySetInnerHTML
+// id={uniqueId} // This might not be needed if mermaid.render directly returns SVG
+⋮----
+// Placeholder while rendering or if SVG content is null
 </file>
 
 <file path="components/repository-insights.tsx">
@@ -1809,25 +4116,6 @@ const getPrStatusColor = (status: string) =>
 
 ⋮----
 {/* Timeline content */}
-</file>
-
-<file path="components/search-results.tsx">
-import { File, Folder, Loader2 } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { ScrollArea } from "@/components/ui/scroll-area"
-⋮----
-interface SearchResultsProps {
-  results: any[]
-  isSearching: boolean
-  query: string
-  onSelectFile: (path: string | null) => void
-  selectedFile: string | null
-}
-⋮----
-// Memoize the click handler to prevent unnecessary re-renders
-const handleFileClick = (path: string) =>
-⋮----
-className=
 </file>
 
 <file path="components/spec-conversation.tsx">
@@ -2059,6 +4347,962 @@ const dismiss = () => dispatch(
 function useToast()
 </file>
 
+<file path="lib/github/__tests__/jest.d.ts">
+declare function describe(name: string, fn: ()
+declare function beforeEach(fn: ()
+declare function it(name: string, fn: ()
+declare function expect(actual: any): any;
+</file>
+
+<file path="lib/github/__tests__/repositories.test.ts">
+import {
+  getRepository,
+  getRepositoryBranches,
+  getRepositoryContributors,
+  getRepositoryLanguages,
+  getRepositoryStats,
+  getRepositoryContents,
+  getRepositoryPullRequests,
+  getRepositoryCommitActivity,
+  getRepositoryParticipation,
+  getRepositoryFileStructure,
+  getRepositoryDetailedStats
+} from '../repositories';
+import githubApiClient, { cachedRequest } from '../client';
+import { RepositoryIdentifier } from '../types';
+⋮----
+// Mock the GitHub API client and cached request
+⋮----
+// Reset mocks before each test
+⋮----
+// Mock the basic stats
+⋮----
+// Mock the additional stats
+⋮----
+// Mock the getRepositoryStats function
+</file>
+
+<file path="lib/github/cache.ts">
+/**
+ * GitHub API response caching
+ */
+import { CACHE_CONFIG } from './config';
+⋮----
+// Type definitions
+type CacheEntry<T> = {
+  data: T;
+  timestamp: number;
+  ttl: number;
+};
+⋮----
+/**
+ * In-memory cache for API responses
+ */
+class ApiCache
+⋮----
+/**
+   * Creates a new ApiCache instance
+   */
+constructor()
+⋮----
+/**
+   * Gets an item from the cache
+   * @param key Cache key
+   * @returns Cached data or null if not found or expired
+   */
+get<T>(key: string): T | null
+⋮----
+/**
+   * Sets an item in the cache
+   * @param key Cache key
+   * @param data Data to cache
+   * @param ttl Time to live in seconds
+   */
+set<T>(key: string, data: T, ttl = CACHE_CONFIG.DEFAULT_TTL): void
+⋮----
+/**
+   * Removes an item from the cache
+   * @param key Cache key
+   */
+delete(key: string): void
+⋮----
+/**
+   * Clears all items from the cache
+   */
+clear(): void
+⋮----
+/**
+   * Gets or sets an item in the cache
+   * @param key Cache key
+   * @param fetchFn Function to fetch data if not in cache
+   * @param ttl Time to live in seconds
+   * @returns Cached or fetched data
+   */
+async getOrSet<T>(
+    key: string, 
+    fetchFn: () => Promise<T>, 
+    ttl = CACHE_CONFIG.DEFAULT_TTL
+): Promise<T>
+⋮----
+// Create a singleton instance of the cache
+</file>
+
+<file path="lib/github/repomix.ts">
+/**
+ * Client-friendly interface for the repomix functionality.
+ * The actual file parsing happens on the server via API routes.
+ */
+⋮----
+// Interface for repomix summary data
+export interface RepomixSummary {
+  overview?: string;
+  aiAnalysis?: string;
+  features?: string[];
+  architecture?: string[];
+  languages?: { name: string; percentage: number }[];
+  statistics?: any;
+  file_count?: number;
+  directory_count?: number;
+  key_files?: string[];
+}
+</file>
+
+<file path="lib/github/repositories.ts">
+/**
+ * GitHub repository API functions
+ */
+import { API_ENDPOINTS, CACHE_CONFIG } from './config';
+import githubApiClient, { cachedRequest } from './client';
+import { Repository, Branch, Contributor, RepositoryIdentifier, CacheOptions, FileNode } from './types';
+import { isValidRepositoryIdentifier } from './utils';
+⋮----
+/**
+ * Gets a repository by owner and name
+ * @param repo Repository identifier
+ * @param options Cache options
+ * @returns Repository data
+ */
+export async function getRepository(
+  repo: RepositoryIdentifier, 
+  options?: CacheOptions
+): Promise<Repository>
+⋮----
+/**
+ * Gets branches for a repository
+ * @param repo Repository identifier
+ * @param options Cache options
+ * @returns Array of branches
+ */
+export async function getRepositoryBranches(
+  repo: RepositoryIdentifier,
+  options?: CacheOptions
+): Promise<Branch[]>
+⋮----
+/**
+ * Gets contributors for a repository
+ * @param repo Repository identifier
+ * @param options Cache options
+ * @returns Array of contributors
+ */
+export async function getRepositoryContributors(
+  repo: RepositoryIdentifier,
+  options?: CacheOptions
+): Promise<Contributor[]>
+⋮----
+/**
+ * Gets languages used in a repository
+ * @param repo Repository identifier
+ * @param options Cache options
+ * @returns Object mapping language name to bytes of code
+ */
+export async function getRepositoryLanguages(
+  repo: RepositoryIdentifier,
+  options?: CacheOptions
+): Promise<Record<string, number>>
+⋮----
+/**
+ * Checks if a repository exists and is accessible
+ * @param repo Repository identifier
+ * @returns Whether the repository exists and is accessible
+ */
+export async function checkRepositoryExists(repo: RepositoryIdentifier): Promise<boolean>
+⋮----
+/**
+ * Gets repository statistics
+ * @param repo Repository identifier
+ * @returns Repository statistics
+ */
+export async function getRepositoryStats(repo: RepositoryIdentifier): Promise<
+⋮----
+/**
+ * Gets contents of a repository directory or file
+ * @param repo Repository identifier
+ * @param path Path within the repository (defaults to root)
+ * @param options Cache options
+ * @returns Repository contents
+ */
+export async function getRepositoryContents(
+  repo: RepositoryIdentifier,
+  path: string = '',
+  options?: CacheOptions
+): Promise<any>
+⋮----
+/**
+ * Gets a file tree for a repository
+ * @param repo Repository identifier
+ * @param options Cache options
+ * @returns Tree structure of the repository
+ */
+export async function getRepositoryFileTree(
+  repo: RepositoryIdentifier,
+  options?: CacheOptions
+): Promise<any>
+⋮----
+/**
+ * Gets pull requests for a repository
+ * @param repo Repository identifier
+ * @param state Filter by state: open, closed, or all
+ * @param options Cache options
+ * @returns Array of pull requests
+ */
+export async function getRepositoryPullRequests(
+  repo: RepositoryIdentifier,
+  state: 'open' | 'closed' | 'all' = 'open',
+  options?: CacheOptions
+): Promise<any[]>
+⋮----
+/**
+ * Gets commit activity for a repository
+ * @param repo Repository identifier
+ * @param options Cache options
+ * @returns Commit activity data
+ */
+export async function getRepositoryCommitActivity(
+  repo: RepositoryIdentifier,
+  options?: CacheOptions
+): Promise<any>
+⋮----
+/**
+ * Gets code frequency statistics for a repository
+ * @param repo Repository identifier
+ * @param options Cache options
+ * @returns Code frequency data
+ */
+export async function getRepositoryCodeFrequency(
+  repo: RepositoryIdentifier,
+  options?: CacheOptions
+): Promise<any>
+⋮----
+/**
+ * Gets participation statistics for a repository
+ * @param repo Repository identifier
+ * @param options Cache options
+ * @returns Participation data
+ */
+export async function getRepositoryParticipation(
+  repo: RepositoryIdentifier,
+  options?: CacheOptions
+): Promise<any>
+⋮----
+/**
+ * Gets detailed statistics for a repository
+ * @param repo Repository identifier
+ * @returns Repository statistics
+ */
+export async function getRepositoryDetailedStats(repo: RepositoryIdentifier): Promise<
+⋮----
+// Get basic stats
+⋮----
+// Get additional stats
+⋮----
+/**
+ * Gets the file structure of a repository as a tree
+ * @param repo Repository identifier 
+ * @returns File structure as a tree
+ */
+export async function getRepositoryFileStructure(
+  repo: RepositoryIdentifier
+): Promise<FileNode[]>
+⋮----
+// Build a tree structure from the flat list
+⋮----
+// First pass: create all nodes
+⋮----
+// Second pass: build hierarchy
+⋮----
+// Sort nodes - directories first, then files alphabetically
+const sortNodes = (nodes: FileNode[]) =>
+</file>
+
+<file path="lib/github/types.ts">
+/**
+ * GitHub API response types
+ */
+⋮----
+// Rate limit information
+export interface RateLimitResponse {
+  resources: {
+    core: {
+      limit: number;
+      used: number;
+      remaining: number;
+      reset: number;
+    };
+    search: {
+      limit: number;
+      used: number;
+      remaining: number;
+      reset: number;
+    };
+    graphql: {
+      limit: number;
+      used: number;
+      remaining: number;
+      reset: number;
+    };
+    integration_manifest: {
+      limit: number;
+      used: number;
+      remaining: number;
+      reset: number;
+    };
+    code_scanning_upload: {
+      limit: number;
+      used: number;
+      remaining: number;
+      reset: number;
+    };
+  };
+  rate: {
+    limit: number;
+    used: number;
+    remaining: number;
+    reset: number;
+  };
+}
+⋮----
+// Repository owner information
+export interface RepositoryOwner {
+  login: string;
+  id: number;
+  node_id: string;
+  avatar_url: string;
+  url: string;
+  html_url: string;
+  type: string;
+}
+⋮----
+// Repository information
+export interface Repository {
+  id: number;
+  node_id: string;
+  name: string;
+  full_name: string;
+  private: boolean;
+  owner: RepositoryOwner;
+  html_url: string;
+  description: string | null;
+  fork: boolean;
+  url: string;
+  created_at: string;
+  updated_at: string;
+  pushed_at: string;
+  homepage: string | null;
+  size: number;
+  stargazers_count: number;
+  watchers_count: number;
+  language: string | null;
+  forks_count: number;
+  open_issues_count: number;
+  default_branch: string;
+  topics?: string[];
+  visibility?: string;
+  license?: {
+    key: string;
+    name: string;
+    url: string;
+  } | null;
+}
+⋮----
+// Branch information
+export interface Branch {
+  name: string;
+  commit: {
+    sha: string;
+    url: string;
+  };
+  protected: boolean;
+}
+⋮----
+// Contributor information
+export interface Contributor {
+  login: string;
+  id: number;
+  node_id: string;
+  avatar_url: string;
+  url: string;
+  html_url: string;
+  type: string;
+  contributions: number;
+}
+⋮----
+// Error response
+export interface GitHubErrorResponse {
+  message: string;
+  documentation_url?: string;
+}
+⋮----
+// API request options
+export interface GitHubRequestOptions extends RequestInit {
+  params?: Record<string, string | number | boolean | undefined>;
+  skipAuthorization?: boolean;
+}
+⋮----
+// Cache control
+export interface CacheOptions {
+  ttl?: number;
+  forceRefresh?: boolean;
+}
+⋮----
+// Repository URL components
+export interface RepositoryIdentifier {
+  owner: string;
+  repo: string;
+  branch?: string;
+}
+⋮----
+// File node for repository file structure
+export interface FileNode {
+  name: string;
+  type: 'file' | 'directory';
+  path?: string;
+  children?: FileNode[];
+}
+</file>
+
+<file path="lib/github/utils.ts">
+/**
+ * GitHub API utility functions
+ */
+import { GitHubErrorResponse, RepositoryIdentifier } from './types';
+⋮----
+/**
+ * Extracts owner and repo name from a GitHub repository URL
+ * @param url GitHub repository URL
+ * @returns Object with owner and repo properties
+ */
+export function parseRepositoryUrl(url: string): RepositoryIdentifier | null
+⋮----
+// Handle different URL formats
+⋮----
+// Split pathname and remove empty strings
+⋮----
+// Handle invalid URLs
+⋮----
+/**
+ * Builds a URL with query parameters
+ * @param baseUrl Base URL
+ * @param params Query parameters
+ * @returns URL with query parameters
+ */
+export function buildUrl(baseUrl: string, params?: Record<string, string | number | boolean | undefined>): string
+⋮----
+/**
+ * Handles API errors and converts them to a standard format
+ * @param error Error object
+ * @returns Standardized error object
+ */
+export function handleApiError(error: unknown): Error
+⋮----
+/**
+ * Parses rate limit information from response headers
+ * @param headers Response headers
+ * @returns Rate limit information
+ */
+export function parseRateLimitHeaders(headers: Headers):
+⋮----
+/**
+ * Validates repository identifier
+ * @param repo Repository identifier
+ * @returns Whether the repository identifier is valid
+ */
+export function isValidRepositoryIdentifier(repo: RepositoryIdentifier | null): repo is RepositoryIdentifier
+</file>
+
+<file path="lib/openai/client.ts">
+/**
+ * OpenAI client factory
+ */
+⋮----
+import { openai } from '@ai-sdk/openai';
+import { getOpenAIConfig } from './config';
+import { OpenAIClientInstance, OpenAIModelConfig } from './types';
+⋮----
+/**
+ * Create an OpenAI client with the provided model configuration
+ * This will return the base model which can be used with various AI SDK functions
+ * @param modelConfig - Configuration for the model to use
+ * @returns OpenAI client for the specified model
+ */
+export function createOpenAIModelClient(modelConfig: OpenAIModelConfig): OpenAIClientInstance
+⋮----
+/**
+ * Get an OpenAI client with the default model configuration
+ * @returns OpenAI client with default model
+ */
+export function getDefaultOpenAIClient(): OpenAIClientInstance
+⋮----
+/**
+ * Get an OpenAI client for planning operations
+ * @returns OpenAI client configured for planning
+ */
+export function getPlanningClient(): OpenAIClientInstance
+⋮----
+/**
+ * Get an OpenAI client for schema generation
+ * @returns OpenAI client configured for schema generation
+ */
+export function getSchemaClient(): OpenAIClientInstance
+⋮----
+/**
+ * Get an OpenAI client for content generation
+ * @returns OpenAI client configured for content generation
+ */
+export function getContentClient(): OpenAIClientInstance
+</file>
+
+<file path="lib/openai/handlers.ts">
+/**
+ * OpenAI response handling utilities
+ */
+⋮----
+import { ResponseMetadata, TokenUsage } from './types';
+⋮----
+/**
+ * Standard error types that can occur when making OpenAI API calls
+ */
+export enum OpenAIErrorType {
+  AUTHORIZATION = 'authorization',
+  RATE_LIMIT = 'rate_limit',
+  SERVER = 'server',
+  TIMEOUT = 'timeout',
+  BAD_REQUEST = 'bad_request',
+  CONNECTION = 'connection',
+  UNKNOWN = 'unknown',
+}
+⋮----
+/**
+ * Standardized error object for OpenAI API errors
+ */
+export interface OpenAIError {
+  type: OpenAIErrorType;
+  message: string;
+  status?: number;
+  details?: any;
+}
+⋮----
+/**
+ * Convert error from OpenAI API to standardized format
+ * @param error The error from the OpenAI API
+ * @returns Standardized error object
+ */
+export function handleOpenAIError(error: any): OpenAIError
+⋮----
+// Check for Axios/fetch error structure
+⋮----
+// Authentication errors
+⋮----
+// Rate limit errors
+⋮----
+// Server errors
+⋮----
+// Bad request errors
+⋮----
+// Timeout errors
+⋮----
+// Connection errors
+⋮----
+// Unknown errors
+⋮----
+/**
+ * Determine if an error is retryable
+ * @param error Standardized error object
+ * @returns True if the error can be retried
+ */
+export function isRetryableError(error: OpenAIError): boolean
+⋮----
+/**
+ * Create metadata from an OpenAI response
+ * @param response Response from OpenAI API
+ * @returns Metadata with usage information
+ */
+export function createResponseMetadata(response: any): ResponseMetadata
+⋮----
+// Add token usage if available
+</file>
+
+<file path="lib/openai/index.ts">
+/**
+ * OpenAI API integration
+ */
+⋮----
+// Export all modules
+⋮----
+// Re-export openai from @ai-sdk/openai
+</file>
+
+<file path="lib/openai/prompts.ts">
+/**
+ * OpenAI prompt templates and management
+ */
+⋮----
+import { truncateToTokenLimit } from './utils';
+⋮----
+/**
+ * Template variables for prompt templates
+ */
+export interface TemplateVariables {
+  [key: string]: string | number | boolean | null | undefined;
+}
+⋮----
+/**
+ * Fill a prompt template with variables
+ * @param template The prompt template with {{variable}} placeholders
+ * @param variables The variables to fill in the template
+ * @returns Filled template
+ */
+export function fillPromptTemplate(template: string, variables: TemplateVariables): string
+⋮----
+// Replace all variables in the template
+⋮----
+/**
+ * Standard system message for planning
+ */
+⋮----
+/**
+ * Standard system message for schema generation
+ */
+⋮----
+/**
+ * Standard system message for general content generation
+ */
+⋮----
+/**
+ * Create a prompt with system and user instructions
+ * @param systemPrompt The system prompt to use
+ * @param userPrompt The user prompt to use
+ * @param maxTokens Maximum tokens for the combined prompt
+ * @returns Combined prompt
+ */
+export function createCombinedPrompt(
+  systemPrompt: string, 
+  userPrompt: string, 
+  maxTokens?: number
+): string
+⋮----
+/**
+ * Format a prompt with chat-style messages
+ * @param messages Array of messages in the format {role: 'system'|'user'|'assistant', content: string}
+ * @returns Formatted chat prompt
+ */
+export function formatChatPrompt(
+  messages: Array<{role: 'system' | 'user' | 'assistant', content: string}>
+): string
+⋮----
+/**
+ * Create a planning prompt from a feature idea
+ * @param featureIdea The feature idea to create a plan for
+ * @param additionalContext Additional context for the plan
+ * @returns Planning prompt
+ */
+export function createPlanningPrompt(featureIdea: string, additionalContext?: string): string
+</file>
+
+<file path="lib/openai/utils.ts">
+/**
+ * OpenAI utility functions
+ */
+⋮----
+/**
+ * Count tokens in a string (rough estimation)
+ * For accurate token counting, use the tiktoken library.
+ * 
+ * This is a rough approximation based on the rule of thumb that
+ * one token is approximately 4 characters in English text.
+ * 
+ * @param text The text to count tokens for
+ * @returns Approximate token count
+ */
+export function estimateTokenCount(text: string): number
+⋮----
+// A rough approximation: 1 token ≈ 4 characters in English
+⋮----
+/**
+ * Truncate a string to a maximum token count
+ * @param text The text to truncate
+ * @param maxTokens Maximum number of tokens
+ * @returns Truncated text
+ */
+export function truncateToTokenLimit(text: string, maxTokens: number): string
+⋮----
+// Estimate the current token count
+⋮----
+return text; // No truncation needed
+⋮----
+// Approximate characters to keep based on max tokens
+⋮----
+// Make sure we don't cut in the middle of a word
+⋮----
+/**
+ * Validate that an API key is properly formatted
+ * @param apiKey OpenAI API key to validate
+ * @returns Whether the API key is valid
+ */
+export function isValidApiKey(apiKey: string | undefined): boolean
+⋮----
+// OpenAI API keys typically start with "sk-" and are 51 characters long
+⋮----
+/**
+ * Combine multiple prompt segments into a single prompt
+ * @param segments Array of prompt segments
+ * @returns Combined prompt
+ */
+export function combinePrompts(segments: string[]): string
+⋮----
+/**
+ * Create a system message string for OpenAI
+ * @param content The system message content
+ * @returns Formatted system message
+ */
+export function createSystemMessage(content: string): string
+⋮----
+/**
+ * Create a user message string for OpenAI
+ * @param content The user message content
+ * @returns Formatted user message
+ */
+export function createUserMessage(content: string): string
+⋮----
+/**
+ * Create an assistant message string for OpenAI
+ * @param content The assistant message content
+ * @returns Formatted assistant message
+ */
+export function createAssistantMessage(content: string): string
+</file>
+
+<file path="lib/prompts/repoMixAnalysisPrompt.ts">
+
+</file>
+
+<file path="lib/services/repomix-generator.ts">
+import { exec } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import util from 'util';
+⋮----
+// Convert exec to promise-based
+⋮----
+/**
+ * Base directory for repository storage
+ */
+⋮----
+/**
+ * Get the path to a repository's branch directory
+ */
+export function getRepoBranchDir(owner: string, repo: string, branch = 'main'): string
+⋮----
+/**
+ * Get the path to a repository's code directory
+ */
+export function getRepoCodeDir(owner: string, repo: string, branch = 'main'): string
+⋮----
+/**
+ * Get the path to a repository's repomix output file
+ */
+export function getRepomixOutputPath(owner: string, repo: string, branch = 'main'): string
+⋮----
+/**
+ * Get the path to a repository's specs directory
+ */
+export function getRepoSpecsDir(owner: string, repo: string, branch = 'main'): string
+⋮----
+/**
+ * Check if repomix command is installed
+ */
+export async function checkRepomixInstalled(): Promise<boolean>
+⋮----
+/**
+ * Generate a repomix summary for a repository
+ */
+export async function generateRepomixSummary(
+  owner: string, 
+  repo: string, 
+  branch = 'main'
+): Promise<
+⋮----
+// Check if repomix is installed
+⋮----
+// Get paths
+⋮----
+// Make sure the repository code directory exists
+⋮----
+// Create specs directory if it doesn't exist
+⋮----
+// Remove any existing repomix output file
+⋮----
+// Run repomix from the branch directory
+⋮----
+// Check if output was generated
+</file>
+
+<file path="lib/llm.ts">
+import { useState, useEffect } from 'react';
+⋮----
+// Keep only the client-side hook
+⋮----
+// Removed LLM Interfaces (defined in server file or could be shared in a types file)
+// Removed Provider Implementations (moved to server file)
+// Removed Factory function (moved to server file)
+// Removed Server-side helpers (like getApiKeyForProvider)
+// Removed analyzeRepositoryWithAI function
+// Removed system prompts and error utils if they aren't used client-side
+⋮----
+// Hook for managing API keys - Stays on the client
+export function useLLMApiKey()
+⋮----
+// Default provider from NEXT_PUBLIC env var
+⋮----
+// Read initial provider from localStorage or env var safely on client
+⋮----
+return process.env.NEXT_PUBLIC_LLM_PROVIDER || 'openai'; // Fallback for server-side rendering if needed, though primarily client
+⋮----
+// Load initial provider
+⋮----
+// Load API key from localStorage
+⋮----
+const saveApiKey = (key: string) =>
+⋮----
+// Maybe remove old provider-specific keys if they existed
+// localStorage.removeItem('openai_api_key');
+// localStorage.removeItem('gemini_api_key');
+// localStorage.removeItem('claude_api_key');
+⋮----
+const saveProvider = (providerName: string) =>
+</file>
+
+<file path="lib/openai.ts">
+import { useState, useEffect } from 'react';
+import { OpenAI } from 'openai';
+⋮----
+// Define interfaces for our LLM clients
+interface LLMResponse {
+  content: string;
+}
+⋮----
+interface LLMProvider {
+  chat(params: {
+    messages: { role: string; content: string }[];
+    temperature?: number;
+    max_tokens?: number;
+  }): Promise<LLMResponse>;
+}
+⋮----
+chat(params: {
+    messages: { role: string; content: string }[];
+    temperature?: number;
+    max_tokens?: number;
+  }): Promise<LLMResponse>;
+⋮----
+// System prompts
+⋮----
+// Error handling utilities
+export function handleLLMError(error: any): any
+⋮----
+export function isRetryableError(error: any): boolean
+⋮----
+// Retry on rate limits or temporary server errors
+⋮----
+// OpenAI Provider Implementation
+class OpenAIProvider implements LLMProvider
+⋮----
+constructor(apiKey: string, model: string = 'gpt-4-turbo', baseUrl: string = 'https://api.openai.com/v1')
+⋮----
+async chat(params: { 
+    messages: { role: string; content: string }[]; 
+    temperature?: number; 
+    max_tokens?: number;
+}): Promise<LLMResponse>
+⋮----
+// Google Gemini Provider Implementation
+class GeminiProvider implements LLMProvider
+⋮----
+constructor(apiKey: string, model: string = 'gemini-2.5-pro-exp-03-25', baseUrl: string = 'https://generativelanguage.googleapis.com/v1beta')
+⋮----
+// Convert to Google's format
+⋮----
+// Map OpenAI roles to Gemini roles
+⋮----
+// If there's a system message, prepend it to the first user message
+⋮----
+// Filter out system messages as Gemini doesn't support them directly
+⋮----
+// Anthropic Claude Provider Implementation
+class ClaudeProvider implements LLMProvider
+⋮----
+constructor(apiKey: string, model: string = 'claude-3-opus-20240229', baseUrl: string = 'https://api.anthropic.com/v1')
+⋮----
+// Convert to Claude's format
+⋮----
+// Map OpenAI roles to Claude roles
+⋮----
+// Handle system message by prepending to the first user message
+⋮----
+// Filter out system messages
+⋮----
+// Factory function to create the appropriate provider based on environment settings
+export function createLLMProvider(apiKey: string, provider: string = 'openai'): LLMProvider
+⋮----
+// Client factories
+export function getSchemaClient()
+⋮----
+// This is a placeholder implementation
+⋮----
+export function getPlanningClient()
+⋮----
+// This is a placeholder implementation
+⋮----
+export function createPlanningPrompt(featureIdea: string, formData: any, featureType: string): string
+⋮----
+// Convert form data to a string representation for the prompt
+⋮----
+// LLM API interaction service for repository analysis
+export async function analyzeRepositoryWithAI(
+  xmlContent: string,
+  apiKey: string,
+  analysisType: 'summary' | 'technology' | 'workflows' | 'security' = 'summary'
+): Promise<string>
+⋮----
+// Get the provider type from the local storage or environment
+⋮----
+// Create the LLM provider
+⋮----
+// Make the API call using the provider
+⋮----
+content: `${prompt}\n\nHere's the repository XML data:\n\n${xmlContent.substring(0, 100000)}`  // Limit to 100K chars to avoid token limits
+⋮----
+// Hook for managing API keys
+export function useLLMApiKey()
+⋮----
+// Load API key and provider from localStorage
+⋮----
+const saveApiKey = (key: string) =>
+⋮----
+localStorage.setItem('openai_api_key', key); // For backward compatibility
+⋮----
+const saveProvider = (providerName: string) =>
+</file>
+
 <file path="lib/template-data.ts">
 
 </file>
@@ -2078,104 +5322,47 @@ export function cn(...inputs: ClassValue[])
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" fill="none"><rect width="1200" height="1200" fill="#EAEAEA" rx="3"/><g opacity=".5"><g opacity=".5"><path fill="#FAFAFA" d="M600.709 736.5c-75.454 0-136.621-61.167-136.621-136.62 0-75.454 61.167-136.621 136.621-136.621 75.453 0 136.62 61.167 136.62 136.621 0 75.453-61.167 136.62-136.62 136.62Z"/><path stroke="#C9C9C9" stroke-width="2.418" d="M600.709 736.5c-75.454 0-136.621-61.167-136.621-136.62 0-75.454 61.167-136.621 136.621-136.621 75.453 0 136.62 61.167 136.62 136.621 0 75.453-61.167 136.62-136.62 136.62Z"/></g><path stroke="url(#a)" stroke-width="2.418" d="M0-1.209h553.581" transform="scale(1 -1) rotate(45 1163.11 91.165)"/><path stroke="url(#b)" stroke-width="2.418" d="M404.846 598.671h391.726"/><path stroke="url(#c)" stroke-width="2.418" d="M599.5 795.742V404.017"/><path stroke="url(#d)" stroke-width="2.418" d="m795.717 796.597-391.441-391.44"/><path fill="#fff" d="M600.709 656.704c-31.384 0-56.825-25.441-56.825-56.824 0-31.384 25.441-56.825 56.825-56.825 31.383 0 56.824 25.441 56.824 56.825 0 31.383-25.441 56.824-56.824 56.824Z"/><g clip-path="url(#e)"><path fill="#666" fill-rule="evenodd" d="M616.426 586.58h-31.434v16.176l3.553-3.554.531-.531h9.068l.074-.074 8.463-8.463h2.565l7.18 7.181V586.58Zm-15.715 14.654 3.698 3.699 1.283 1.282-2.565 2.565-1.282-1.283-5.2-5.199h-6.066l-5.514 5.514-.073.073v2.876a2.418 2.418 0 0 0 2.418 2.418h26.598a2.418 2.418 0 0 0 2.418-2.418v-8.317l-8.463-8.463-7.181 7.181-.071.072Zm-19.347 5.442v4.085a6.045 6.045 0 0 0 6.046 6.045h26.598a6.044 6.044 0 0 0 6.045-6.045v-7.108l1.356-1.355-1.282-1.283-.074-.073v-17.989h-38.689v23.43l-.146.146.146.147Z" clip-rule="evenodd"/></g><path stroke="#C9C9C9" stroke-width="2.418" d="M600.709 656.704c-31.384 0-56.825-25.441-56.825-56.824 0-31.384 25.441-56.825 56.825-56.825 31.383 0 56.824 25.441 56.824 56.825 0 31.383-25.441 56.824-56.824 56.824Z"/></g><defs><linearGradient id="a" x1="554.061" x2="-.48" y1=".083" y2=".087" gradientUnits="userSpaceOnUse"><stop stop-color="#C9C9C9" stop-opacity="0"/><stop offset=".208" stop-color="#C9C9C9"/><stop offset=".792" stop-color="#C9C9C9"/><stop offset="1" stop-color="#C9C9C9" stop-opacity="0"/></linearGradient><linearGradient id="b" x1="796.912" x2="404.507" y1="599.963" y2="599.965" gradientUnits="userSpaceOnUse"><stop stop-color="#C9C9C9" stop-opacity="0"/><stop offset=".208" stop-color="#C9C9C9"/><stop offset=".792" stop-color="#C9C9C9"/><stop offset="1" stop-color="#C9C9C9" stop-opacity="0"/></linearGradient><linearGradient id="c" x1="600.792" x2="600.794" y1="403.677" y2="796.082" gradientUnits="userSpaceOnUse"><stop stop-color="#C9C9C9" stop-opacity="0"/><stop offset=".208" stop-color="#C9C9C9"/><stop offset=".792" stop-color="#C9C9C9"/><stop offset="1" stop-color="#C9C9C9" stop-opacity="0"/></linearGradient><linearGradient id="d" x1="404.85" x2="796.972" y1="403.903" y2="796.02" gradientUnits="userSpaceOnUse"><stop stop-color="#C9C9C9" stop-opacity="0"/><stop offset=".208" stop-color="#C9C9C9"/><stop offset=".792" stop-color="#C9C9C9"/><stop offset="1" stop-color="#C9C9C9" stop-opacity="0"/></linearGradient><clipPath id="e"><path fill="#fff" d="M581.364 580.535h38.689v38.689h-38.689z"/></clipPath></defs></svg>
 </file>
 
-<file path="styles/globals.css">
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+<file path="scripts/setup-test-repo.js">
+// This script creates a test repository structure for debugging and testing
 ⋮----
-body {
+// Configuration
 ⋮----
-@layer utilities {
+// Base paths
+const storageDir = path.join(process.cwd(), 'storage', 'repos');
+const repoDir = path.join(storageDir, owner, repo);
+const branchDir = path.join(repoDir, branch);
+const codeDir = path.join(branchDir, 'code');
+const specsDir = path.join(branchDir, 'specs');
 ⋮----
-.text-balance {
+// Create directory structure
+console.log('Creating directory structure...');
+fs.mkdirSync(path.join(storageDir, owner, repo, branch, 'code'), { recursive: true });
+fs.mkdirSync(path.join(specsDir, 'spec-test'), { recursive: true });
 ⋮----
-@layer base {
+// Create sample files
+console.log('Creating sample files...');
 ⋮----
-:root {
-.dark {
+// Create a basic README in the code directory
 ⋮----
-* {
+fs.writeFileSync(path.join(codeDir, 'README.md'), readmeContent);
 ⋮----
-@apply border-border;
-</file>
-
-<file path=".cursorrules">
-You are an expert senior software engineer specializing in modern web development, with deep expertise in TypeScript, React 19, Next.js 15 (App Router), Vercel AI SDK, Shadcn UI, Radix UI, and Tailwind CSS. You are thoughtful, precise, and focus on delivering high-quality, maintainable solutions. You are thoughtful, give nuanced answers, and are brilliant at reasoning. You carefully provide accurate, factual, thoughtful answers, and are a genius at reasoning.
-
-Be concise. Minimize any other prose.
-
-If you think there might not be a correct answer, you say so. If you do not know the answer, say so instead of guessing.
-
-## Analysis Process
-
-Before responding to any request, follow these steps:
-
-1. Request Analysis
-   - Follow the user’s requirements carefully & to the letter.
-   - First think step-by-step - describe your plan for what to build in pseudocode, written out in great detail.
-   - Determine task type (code creation, debugging, architecture, etc.)
-   - Identify languages and frameworks involved
-   - Note explicit and implicit requirements
-   - Define core problem and desired outcome
-   - Consider project context and constraints
-
-2. Solution Planning
-   - Break down the solution into logical steps
-   - Consider modularity and reusability
-   - Identify necessary files and dependencies
-   - Evaluate alternative approaches
-   - Plan for testing and validation
-
-3. Implementation Strategy
-   - Choose appropriate design patterns
-   - Always write correct, up to date, bug free, fully functional and working, secure, performant and efficient code.
-   - Leave NO todo’s, placeholders or missing pieces.
-   - Consider performance implications
-   - Plan for error handling and edge cases
-   - Ensure accessibility compliance
-   - Verify best practices alignment
-
-## Code Style and Structure
-
-### General Principles
-
-- Write concise, readable TypeScript code
-- Use functional and declarative programming patterns
-- Follow DRY (Don't Repeat Yourself) principle
-- Implement early returns for better readability
-- Structure components logically: exports, subcomponents, helpers, types
-
-### Naming Conventions
-
-- Use descriptive names with auxiliary verbs (isLoading, hasError)
-- Prefix event handlers with "handle" (handleClick, handleSubmit)
-- Use lowercase with dashes for directories (components/auth-wizard)
-- Favor named exports for components
-
-### TypeScript Usage
-
-- Use TypeScript for all code
-- Prefer interfaces over types
-- Avoid enums; use const maps instead
-- Implement proper type safety and inference
-- Use `satisfies` operator for type validation
-
-## React 19 and Next.js 15 Best Practices
-
-### Component Architecture
-
-- Favor React Server Components (RSC) where possible
-- Minimize 'use client' directives
-- Implement proper error boundaries
-- Use Suspense for async operations
-- Optimize for performance and Web Vitals
-
-### State Management
-
-- Use `useActionState` instead of deprecated `useFormState`
-- Leverage enhanced `useFormStatus` with new properties (data, method, action)
-- Implement URL state management with 'nuqs'
-- Minimize client-side state
+// Create a sample code file
+⋮----
+fs.writeFileSync(path.join(codeDir, 'index.js'), indexContent);
+⋮----
+// Create a PLANNING.md in the specs directory
+⋮----
+fs.writeFileSync(path.join(specsDir, 'spec-test', 'PLANNING.md'), planningContent);
+⋮----
+// Create a sample repomix-summary.xml
+⋮----
+fs.writeFileSync(path.join(branchDir, 'repomix-summary.xml'), repomixContent);
+⋮----
+console.log('Test repository structure created successfully!');
+console.log(`Path: ${branchDir}`);
+console.log('Run the following to test the API:');
+console.log(`curl "http://localhost:3000/api/repositories/debug?owner=${owner}&repo=${repo}&branch=${branch}"`);
+console.log(`curl -X POST -H "Content-Type: application/json" -d '{"owner":"${owner}","repo":"${repo}","branch":"${branch}"}' http://localhost:3000/api/repositories/repomix-summary`);
 </file>
 
 <file path="components.json">
@@ -2202,6 +5389,17 @@ Before responding to any request, follow these steps:
 }
 </file>
 
+<file path="middleware.ts">
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+⋮----
+export function middleware(request: NextRequest)
+⋮----
+// Continue to the requested page
+⋮----
+// See "Matching Paths" below to learn more
+</file>
+
 <file path="next-env.d.ts">
 /// <reference types="next" />
 /// <reference types="next/image-types/global" />
@@ -2214,84 +5412,127 @@ Before responding to any request, follow these steps:
 /** @type {import('next').NextConfig} */
 </file>
 
-<file path="package.json">
-{
-  "name": "my-v0-project",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "@hookform/resolvers": "^3.9.1",
-    "@radix-ui/react-accordion": "^1.2.2",
-    "@radix-ui/react-alert-dialog": "^1.1.4",
-    "@radix-ui/react-aspect-ratio": "^1.1.1",
-    "@radix-ui/react-avatar": "latest",
-    "@radix-ui/react-checkbox": "^1.1.3",
-    "@radix-ui/react-collapsible": "latest",
-    "@radix-ui/react-context-menu": "^2.2.4",
-    "@radix-ui/react-dialog": "latest",
-    "@radix-ui/react-dropdown-menu": "latest",
-    "@radix-ui/react-hover-card": "^1.1.4",
-    "@radix-ui/react-label": "^2.1.1",
-    "@radix-ui/react-menubar": "^1.1.4",
-    "@radix-ui/react-navigation-menu": "^1.2.3",
-    "@radix-ui/react-popover": "^1.1.4",
-    "@radix-ui/react-progress": "^1.1.1",
-    "@radix-ui/react-radio-group": "^1.2.2",
-    "@radix-ui/react-scroll-area": "latest",
-    "@radix-ui/react-select": "^2.1.4",
-    "@radix-ui/react-separator": "latest",
-    "@radix-ui/react-slider": "latest",
-    "@radix-ui/react-slot": "^1.1.1",
-    "@radix-ui/react-switch": "latest",
-    "@radix-ui/react-tabs": "^1.1.2",
-    "@radix-ui/react-toast": "^1.2.4",
-    "@radix-ui/react-toggle": "^1.1.1",
-    "@radix-ui/react-toggle-group": "^1.1.1",
-    "@radix-ui/react-tooltip": "latest",
-    "autoprefixer": "^10.4.20",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "cmdk": "1.0.4",
-    "date-fns": "4.1.0",
-    "embla-carousel-react": "8.5.1",
-    "input-otp": "1.4.1",
-    "lucide-react": "^0.454.0",
-    "next": "15.2.4",
-    "next-themes": "latest",
-    "react": "^19",
-    "react-day-picker": "8.10.1",
-    "react-dom": "^19",
-    "react-hook-form": "^7.54.1",
-    "react-resizable-panels": "latest",
-    "recharts": "2.15.0",
-    "sonner": "^1.7.1",
-    "tailwind-merge": "^2.5.5",
-    "tailwindcss-animate": "^1.0.7",
-    "vaul": "^0.9.6",
-    "zod": "^3.24.1",
-    "ai": "latest",
-    "@ai-sdk/openai": "latest",
-    "d3": "latest"
-  },
-  "devDependencies": {
-    "@types/node": "^22",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5"
-  }
-}
-</file>
-
 <file path="postcss.config.mjs">
 /** @type {import('postcss-load-config').Config} */
+</file>
+
+<file path="spec-template.md">
+# 🧾 Repository Specification Template
+
+## 📘 Repository Overview  
+- **Summary**:  
+  > _[Brief summary of the repository, its purpose, and what it does]_
+
+- **Core Features**:  
+  - _[Feature 1]_ — _[Short description]_  
+  - _[Feature 2]_ — _[Short description]_  
+  - _[Feature 3]_ — _[Short description]_
+
+---
+
+## 🚀 CI/CD  
+- **Workflows Detected**:  
+  - `.github/workflows/build.yml` — Builds the project  
+  - `.github/workflows/test.yml` — Runs tests on PR  
+  - `.github/workflows/deploy.yml` — Deploys to production
+
+- **Tools Used**:  
+  - GitHub Actions  
+  - CodePipeline  
+  - CircleCI _(if applicable)_
+
+- **Artifacts / Deployments**:  
+  - Builds Docker images and pushes to ECR  
+  - Deploys static site to S3  
+  - Publishes package to npm registry
+
+- **Relevant Links**:  
+  - [CI Build Status](https://github.com/org/repo/actions/workflows/build.yml)  
+  - [Deployment Logs](https://example.com/deployments)
+
+---
+
+## 🧰 Integrated Tools  
+- **Security Tools**:  
+  - Snyk  
+  - CodeQL  
+  - Dependabot
+
+- **Quality / Monitoring Tools**:  
+  - SonarQube  
+  - ESLint  
+  - Prettier  
+  - Codecov
+
+- **Testing / Automation Tools**:  
+  - Playwright  
+  - Perfecto  
+  - Cypress
+
+- **Other Tools**:  
+  - Renovate  
+  - GitHub Copilot  
+  - Secret scanning
+
+---
+
+## 🔀 Pull Request Workflows  
+- **Triggers**:  
+  - Lint, build, test on every PR  
+  - Deploy to staging on PR merge to `main`
+
+- **Checks / Bots**:  
+  - Required: `build`, `lint`, `test`, `Snyk Security`  
+  - Bots: `auto-assign`, `codeowner review`, `danger.js`
+
+- **Branch Rules**:  
+  - PR must pass all checks  
+  - Require 1-2 reviewers  
+  - No direct pushes to `main`
+
+---
+
+## 🛠️ Languages & Versions  
+- **Languages**:  
+  - TypeScript (75%)  
+  - Shell (15%)  
+  - YAML (10%)
+
+- **Language Versions**:  
+  - Node.js 18.x  
+  - Python 3.10 _(from CI config)_
+
+- **Package Managers**:  
+  - `npm`  
+  - `pip`  
+  - `maven` _(if applicable)_
+
+---
+
+## 🧪 Testing & Coverage  
+- **Frameworks Detected**:  
+  - Jest  
+  - PyTest  
+  - JUnit
+
+- **Test Directories / Files**:  
+  - `tests/`, `__tests__/`, `specs/`  
+  - Files ending in `.spec.ts`, `.test.py`
+
+- **Estimated Coverage**:  
+  - ~85% _(from Codecov badge)_  
+  - Full unit + some integration tests
+
+- **Notable Test Types**:  
+  - Unit tests  
+  - Integration tests  
+  - End-to-end (E2E) tests
+
+---
+</file>
+
+<file path="tailwind.config.js">
+maxWidth: '100%', // Prevent prose from limiting width
 </file>
 
 <file path="tailwind.config.ts">
@@ -2325,6 +5566,1436 @@ import type { Config } from "tailwindcss"
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
+}
+</file>
+
+<file path="app/auth/page.tsx">
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Github, Lock } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { toast } from "@/components/ui/use-toast"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { useRepository } from "@/lib/github/context"
+⋮----
+export default function AuthPage()
+⋮----
+const handleConnect = async () =>
+⋮----
+// Connect repository using context
+⋮----
+// Navigate to the dashboard
+</file>
+
+<file path="app/dependencies/page.tsx">
+import { useState, useEffect, useCallback } from "react"
+import Link from "next/link"
+import { useSearchParams, useRouter } from "next/navigation"
+import {
+  ArrowLeft,
+  Search,
+  X,
+  ZoomIn,
+  ZoomOut,
+  RefreshCw,
+  Download,
+  Info,
+  ChevronRight,
+  FileCode,
+  FolderOpen,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { DependencyGraph } from "@/components/dependency-graph"
+import { toast } from "@/components/ui/use-toast"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
+⋮----
+// Define the type based on DependencyGraphProps['dependencyData']
+type DependencyGraphDataType = {
+  nodes: { id: string; label: string }[];
+  edges: { source: string; target: string; type: string }[];
+} | null;
+⋮----
+// Define type for the API response
+interface DependenciesApiResponse {
+  graphData: DependencyGraphDataType; // Use the type derived before
+  fileStructure: FileStructureItem[];
+}
+⋮----
+graphData: DependencyGraphDataType; // Use the type derived before
+⋮----
+// Local definition
+interface FileStructureItem {
+  name: string;
+  type: 'directory' | 'file';
+  path: string; 
+  children?: FileStructureItem[];
+}
+⋮----
+// Get repository params from URL
+⋮----
+// Fetch dependency graph data and file structure on load
+⋮----
+const fetchData = async () =>
+⋮----
+setFileStructure([]); // Clear previous structure
+⋮----
+// Expect combined data
+⋮----
+setFileStructure(data.fileStructure); // Set the file structure state
+⋮----
+setDependencyGraph(data.graphData); // Set graph data
+// Set initial selected file
+⋮----
+setFileStructure([]); // Clear structure on error
+⋮----
+// Update mock file structure path for display consistency if needed (optional)
+// This part is cosmetic and doesn't affect the actual analysis
+⋮----
+setFileStructure([ /* Update mock structure paths if keeping it */ ]);
+⋮----
+// Handle missing parameters - maybe redirect or show error
+⋮----
+setFileStructure([]); // Clear structure if params missing
+// Optionally redirect back
+// router.push('/dashboard');
+⋮----
+// Only run on mount or when params change
+}, [orgParam, repoParam, branchParam]); // Removed form, analyzeRepository dependencies
+⋮----
+// Handle file search (now uses real fileStructure)
+⋮----
+// Ensure fileStructure is populated before searching
+⋮----
+// Recursive function to search through file structure (now uses real data)
+const searchFiles = (files: FileStructureItem[], query: string): FileStructureItem[] =>
+⋮----
+// Ensure we push items matching the expected type
+⋮----
+// Handle refresh: re-trigger the data fetch
+⋮----
+// Re-run the fetch logic (could extract fetchData outside useEffect)
+⋮----
+setFileStructure([]); // Clear previous structure
+⋮----
+// Reset selected file? Maybe keep it if it still exists?
+⋮----
+} catch (err: any) { /* handle error */ }
+⋮----
+// Handle download of dependency data
+const handleDownloadData = () =>
+⋮----
+// In a real app, this would trigger a file download
+⋮----
+// Format date to be more readable
+const formatDate = (dateString: string) =>
+⋮----
+// Toggle folder expansion
+const toggleFolder = (folder: string) =>
+⋮----
+// Render file structure recursively (Update parameter type)
+⋮----
+className=
+⋮----
+// Render search results (Update parameter type if needed, ensure onClick uses item.path)
+⋮----
+// Calculate dependencies and dependents when selection changes
+⋮----
+if (selectedFile && dependencyGraph?.edges && dependencyGraph?.nodes) { // Check nodes exist too
+⋮----
+// Remove the coreModule filter as it's not available on the simplified node type
+⋮----
+// Remove duplicates and sort
+⋮----
+onValueChange=
+⋮----
+onClick={() => setSelectedFile(dep)} // Make clickable
+title={dep} // Show full path on hover
+⋮----
+{/* Optional: Add badge if needed */}
+⋮----
+onClick={() => setSelectedFile(dep)} // Make clickable
+title={dep} // Show full path on hover
+⋮----
+{/* Optional: Add badge if needed */}
+</file>
+
+<file path="app/globals.css">
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+⋮----
+@layer base {
+⋮----
+:root {
+⋮----
+.dark {
+⋮----
+body {
+⋮----
+/* Markdown Styles */
+.markdown {
+⋮----
+/* Apply Tailwind typography styles */
+.markdown.prose {
+⋮----
+.markdown h1 {
+⋮----
+.markdown h2 {
+⋮----
+.markdown h3 {
+⋮----
+.markdown p {
+⋮----
+.markdown ul, .markdown ol {
+⋮----
+.markdown ul {
+⋮----
+.markdown ol {
+⋮----
+.markdown li + li {
+⋮----
+.markdown pre {
+⋮----
+.markdown code {
+⋮----
+.markdown pre code {
+⋮----
+.markdown blockquote {
+⋮----
+.markdown table {
+⋮----
+.markdown table th, .markdown table td {
+⋮----
+.markdown table th {
+⋮----
+.markdown hr {
+⋮----
+.markdown a {
+⋮----
+.markdown a:hover {
+⋮----
+/* Fix for chat messages */
+.markdown.text-sm {
+⋮----
+/* Make sure code blocks have proper syntax highlighting */
+⋮----
+.markdown pre > code {
+⋮----
+/* Ensure links stand out */
+</file>
+
+<file path="app/page.tsx">
+import { Github } from "lucide-react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { ThemeToggle } from "@/components/theme-toggle"
+⋮----
+export default function Home()
+</file>
+
+<file path="components/ui/chart.tsx">
+import { cn } from "@/lib/utils"
+⋮----
+// Format: { THEME_NAME: CSS_SELECTOR }
+⋮----
+export type ChartConfig = {
+  [k in string]: {
+    label?: React.ReactNode
+    icon?: React.ComponentType
+  } & (
+    | { color?: string; theme?: never }
+    | { color?: never; theme: Record<keyof typeof THEMES, string> }
+  )
+}
+⋮----
+type ChartContextProps = {
+  config: ChartConfig
+}
+⋮----
+function useChart()
+⋮----
+className=
+⋮----
+<div className=
+⋮----
+// Helper to extract item config from a payload.
+</file>
+
+<file path="components/ui/sonner.tsx">
+import { useTheme } from "next-themes"
+import { Toaster as Sonner } from "sonner"
+import { cn } from "@/lib/utils"
+⋮----
+type ToasterProps = React.ComponentProps<typeof Sonner>
+⋮----
+const Toaster = (
+</file>
+
+<file path="components/dependency-graph.tsx">
+import { useEffect, useRef, useState } from "react"
+⋮----
+import { Loader2 } from "lucide-react"
+⋮----
+interface DependencyGraphProps {
+  filePath: string
+  depthLevel: number
+  showIndirectDeps: boolean
+  zoomLevel: number
+  onNodeSelect: (nodeId: string) => void
+  dependencyData?: {
+    nodes: { id: string; label: string }[];
+    edges: { source: string; target: string; type: string }[];
+  } | null;
+}
+⋮----
+interface Node {
+  id: string
+  group: number
+  type: string
+  level: number
+  isRoot?: boolean
+}
+⋮----
+interface Link {
+  source: string
+  target: string
+  value: number
+  type: string
+}
+⋮----
+interface GraphData {
+  nodes: Node[]
+  links: Link[]
+}
+⋮----
+export function DependencyGraph({
+  filePath,
+  depthLevel,
+  showIndirectDeps,
+  zoomLevel,
+  onNodeSelect,
+  dependencyData = null,
+}: DependencyGraphProps)
+⋮----
+// Generate graph data based on dependency data or mock data
+⋮----
+// If we have real dependency data, use it
+⋮----
+// Otherwise use mock data (for backward compatibility)
+⋮----
+// Process real dependency data
+const processDependencyData = () =>
+⋮----
+// Filter the dependency graph to show only nodes connected to the selected file
+// and limited by depth level
+⋮----
+// Add the root node (selected file)
+⋮----
+// Helper function to traverse graph up to max depth
+const traverseGraph = (startId: string, currentDepth: number, isOutgoing: boolean) =>
+⋮----
+// Find connected nodes
+⋮----
+// This is a dependency (outgoing edge)
+⋮----
+// This is a dependent (incoming edge)
+⋮----
+// Traverse dependencies (outgoing edges)
+⋮----
+// Traverse dependents (incoming edges)
+⋮----
+// Add nodes
+⋮----
+// Add edges that connect nodes in our filtered set
+⋮----
+// Only include if both nodes are in our filtered set
+⋮----
+return; // Skip indirect dependencies if not showing them
+⋮----
+// Generate mock data (fallback for backward compatibility)
+const generateMockData = () =>
+⋮----
+// Simulate API call to get dependency data
+⋮----
+// Generate mock dependency graph for the selected file
+⋮----
+// Add the root node (selected file)
+⋮----
+// Generate dependencies (files that the selected file imports)
+⋮----
+// Add dependency nodes and links
+⋮----
+// Add indirect dependencies if enabled
+⋮----
+// Generate dependents (files that import the selected file)
+⋮----
+// Add dependent nodes and links
+⋮----
+// Add indirect dependents if enabled
+⋮----
+// Render the graph
+⋮----
+// Clear previous graph
+⋮----
+// Set up the SVG
+⋮----
+// Create a group for zoom/pan
+⋮----
+// Add zoom behavior
+⋮----
+// Set initial zoom level
+⋮----
+// Create the simulation
+⋮----
+// Define color scale for node groups
+⋮----
+// Create links
+⋮----
+// Create nodes
+⋮----
+// Add tooltips
+⋮----
+// Add labels
+⋮----
+// Update node and link positions on simulation tick
+⋮----
+// Drag function for nodes
+function drag(simulation: any)
+⋮----
+function dragstarted(event: any)
+⋮----
+function dragged(event: any)
+⋮----
+function dragended(event: any)
+⋮----
+// Add legend
+⋮----
+// Helper function to get file type from path
+function getFileType(path: string): string
+⋮----
+// Helper function to generate mock dependencies
+function generateMockDependencies(filePath: string, maxDepth: number): any[]
+⋮----
+// Mock data based on file path
+⋮----
+// Add indirect dependencies if depth > 1
+⋮----
+// Generate random dependencies for other files
+⋮----
+// Helper function to generate mock dependents
+function generateMockDependents(filePath: string, maxDepth: number): any[]
+⋮----
+// Mock data based on file path
+⋮----
+// Add indirect dependents if depth > 1
+⋮----
+// Generate random dependents for other files
+</file>
+
+<file path="components/repository-info.tsx">
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { BarChart3, GitBranch, Users, Code, GitPullRequest, Activity } from "lucide-react";
+import { Repository, Branch, Contributor } from '@/lib/github';
+⋮----
+interface RepositoryInfoProps {
+  repository: Repository;
+  branches: Branch[];
+  contributors: Contributor[];
+  languages: Record<string, number>;
+  pullRequests?: any[];
+  commitActivity?: any;
+  codeFrequency?: any;
+  participation?: any;
+  compact?: boolean;
+}
+⋮----
+// Calculate total language bytes for percentage calculation
+⋮----
+// Convert languages to array with percentages for display
+⋮----
+// Format commit activity data for display if available
+⋮----
+// Format pull request data for display if available
+⋮----
+// Use a more compact layout when in compact mode
+⋮----
+// Original non-compact layout
+⋮----
+</file>
+
+<file path="components/search-results.tsx">
+import { File, Folder, Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { ScrollArea } from "@/components/ui/scroll-area"
+⋮----
+interface SearchResultsProps {
+  results: any[]
+  isSearching: boolean
+  query?: string
+  onSelectFile: (path: string | null) => void
+  selectedFile?: string | null
+}
+⋮----
+// Memoize the click handler to prevent unnecessary re-renders
+const handleFileClick = (path: string) =>
+⋮----
+className=
+</file>
+
+<file path="lib/github/client.ts">
+/**
+ * GitHub API client
+ */
+import { cache } from 'react';
+import { GITHUB_API_KEY, GITHUB_BASE_URL, DEFAULT_REQUEST_OPTIONS, CACHE_CONFIG, RATE_LIMIT_HEADERS } from './config';
+import { GitHubRequestOptions, GitHubErrorResponse, CacheOptions } from './types';
+import { buildUrl, handleApiError, parseRateLimitHeaders } from './utils';
+import apiCache from './cache';
+⋮----
+// Check if API key is configured
+⋮----
+/**
+ * GitHub API client class
+ */
+class GitHubApiClient
+⋮----
+/**
+   * Creates a new GitHubApiClient instance
+   */
+constructor()
+⋮----
+/**
+   * Makes an HTTP request to the GitHub API
+   * @param endpoint API endpoint
+   * @param options Request options
+   * @returns Response data
+   */
+async request<T>(endpoint: string, options?: GitHubRequestOptions): Promise<T>
+⋮----
+// Prepare request options
+⋮----
+// Make request
+⋮----
+// Check for rate limiting
+⋮----
+// Handle rate limit errors proactively
+⋮----
+// Handle unsuccessful responses
+⋮----
+// Parse and return response data
+⋮----
+/**
+   * Makes a cached HTTP request to the GitHub API
+   * @param endpoint API endpoint
+   * @param options Request options
+   * @param cacheOptions Cache options
+   * @returns Response data
+   */
+async cachedRequest<T>(
+    endpoint: string, 
+    options?: GitHubRequestOptions, 
+    cacheOptions?: CacheOptions
+): Promise<T>
+⋮----
+// Skip cache if forceRefresh is true
+⋮----
+// Create a cache key based on the endpoint and options
+⋮----
+// Use the cache
+⋮----
+/**
+   * Gets the current rate limit status
+   * @returns Rate limit information
+   */
+async getRateLimit()
+⋮----
+// Create a singleton instance of the GitHub API client
+⋮----
+// Add a function to manually set the API key if needed
+export const setGitHubApiKey = (apiKey: string) =>
+⋮----
+// @ts-ignore - Directly setting a private property for debugging purposes
+⋮----
+/**
+ * Cached API request function with React cache
+ */
+⋮----
+// Export the GitHub API client
+</file>
+
+<file path="lib/github/config.ts">
+/**
+ * GitHub API configuration
+ */
+⋮----
+// Environment variables for GitHub API authentication
+⋮----
+// API endpoints
+⋮----
+// GitHub API response headers
+⋮----
+// Default API request options
+⋮----
+// Cache configuration
+⋮----
+DEFAULT_TTL: 60 * 5, // 5 minutes in seconds
+REPO_DATA_TTL: 60 * 15, // 15 minutes in seconds
+USER_DATA_TTL: 60 * 30, // 30 minutes in seconds
+STATS_TTL: 60 * 60 * 24, // 24 hours in seconds
+</file>
+
+<file path="lib/github/index.ts">
+/**
+ * GitHub API functionality
+ */
+⋮----
+// Export types
+⋮----
+// Export utility functions
+⋮----
+// Export configuration
+⋮----
+// Export repository functions
+⋮----
+// Export repomix functions
+⋮----
+// Export client
+⋮----
+// Export cache
+</file>
+
+<file path="lib/openai/config.ts">
+/**
+ * OpenAI configuration settings
+ */
+⋮----
+import { OpenAIConfig } from './types';
+⋮----
+/**
+ * Get the OpenAI API key from environment variables
+ * @returns The API key or undefined if not found
+ */
+export function getOpenAIApiKey(): string | undefined
+⋮----
+/**
+ * Get the current environment (development or production)
+ * @returns The current environment
+ */
+export function getEnvironment(): 'development' | 'production'
+⋮----
+/**
+ * Default OpenAI configuration
+ */
+⋮----
+/**
+ * Create a custom OpenAI configuration by overriding default values
+ * @param overrides - Custom configuration values to override defaults
+ * @returns Custom OpenAI configuration
+ */
+export function createOpenAIConfig(overrides: Partial<OpenAIConfig> =
+⋮----
+/**
+ * Get the active OpenAI configuration
+ * @returns The active OpenAI configuration
+ */
+export function getOpenAIConfig(): OpenAIConfig
+</file>
+
+<file path="lib/openai/types.ts">
+/**
+ * OpenAI integration types
+ */
+⋮----
+import { openai } from '@ai-sdk/openai';
+⋮----
+/**
+ * OpenAI model configuration options
+ */
+export interface OpenAIModelConfig {
+  /** The model identifier to use (e.g., "gpt-4o", "gpt-4.1") */
+  modelName: string;
+  /** Optional fallback model to use if primary model is unavailable */
+  fallbackModel?: string;
+  /** Temperature setting for generation (0-1, lower is more deterministic) */
+  temperature?: number;
+  /** Max tokens to generate in the response */
+  maxTokens?: number;
+  /** Whether to use streaming responses when possible */
+  streaming?: boolean;
+}
+⋮----
+/** The model identifier to use (e.g., "gpt-4o", "gpt-4.1") */
+⋮----
+/** Optional fallback model to use if primary model is unavailable */
+⋮----
+/** Temperature setting for generation (0-1, lower is more deterministic) */
+⋮----
+/** Max tokens to generate in the response */
+⋮----
+/** Whether to use streaming responses when possible */
+⋮----
+/**
+ * Environment configuration for OpenAI
+ */
+export interface OpenAIEnvConfig {
+  /** OpenAI API key */
+  apiKey: string;
+  /** Base URL for OpenAI API (optional) */
+  baseUrl?: string;
+  /** Organization ID (optional) */
+  organization?: string;
+  /** Environment name (development, production) */
+  environment: 'development' | 'production';
+}
+⋮----
+/** OpenAI API key */
+⋮----
+/** Base URL for OpenAI API (optional) */
+⋮----
+/** Organization ID (optional) */
+⋮----
+/** Environment name (development, production) */
+⋮----
+/**
+ * Complete OpenAI configuration
+ */
+export interface OpenAIConfig {
+  /** Environment configuration */
+  env: OpenAIEnvConfig;
+  /** Default model configuration */
+  defaultModel: OpenAIModelConfig;
+  /** Model configurations by purpose */
+  models: {
+    /** Model for generating planning documents */
+    planning: OpenAIModelConfig;
+    /** Model for generating form schemas */
+    schema: OpenAIModelConfig;
+    /** Model for general content generation */
+    content: OpenAIModelConfig;
+  };
+}
+⋮----
+/** Environment configuration */
+⋮----
+/** Default model configuration */
+⋮----
+/** Model configurations by purpose */
+⋮----
+/** Model for generating planning documents */
+⋮----
+/** Model for generating form schemas */
+⋮----
+/** Model for general content generation */
+⋮----
+/**
+ * Error response from OpenAI API
+ */
+export interface OpenAIErrorResponse {
+  error: {
+    message: string;
+    type: string;
+    param?: string;
+    code?: string;
+  };
+}
+⋮----
+/**
+ * OpenAI client instance type
+ */
+export type OpenAIClientInstance = ReturnType<typeof openai>;
+⋮----
+/**
+ * Token usage information
+ */
+export interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  model: string;
+  timestamp: number;
+  requestId?: string;
+}
+⋮----
+/**
+ * Response metadata
+ */
+export interface ResponseMetadata {
+  requestId?: string;
+  modelUsed: string;
+  tokenUsage?: TokenUsage;
+  latency?: number;
+}
+</file>
+
+<file path="lib/llm-server.ts">
+// lib/llm-server.ts - Server-side LLM utilities
+⋮----
+import { OpenAI } from "openai";
+⋮----
+export interface LLMMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+⋮----
+export interface LLMGenerateOptions {
+  messages: LLMMessage[];
+  temperature?: number;
+  maxTokens?: number;
+  responseFormat?: { type: string };
+}
+⋮----
+export interface LLMResponse {
+  content: string;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+}
+⋮----
+export interface LLMProvider {
+  generate(options: LLMGenerateOptions): Promise<LLMResponse>;
+}
+⋮----
+generate(options: LLMGenerateOptions): Promise<LLMResponse>;
+⋮----
+// Error handling utilities (if needed server-side)
+export function handleLLMError(error: any): any
+⋮----
+export function isRetryableError(error: any): boolean
+⋮----
+// Retry on rate limits or temporary server errors
+⋮----
+// System prompts (if only used server-side)
+// export const SCHEMA_SYSTEM_PROMPT = "...";
+// export const PLANNING_SYSTEM_PROMPT = "...";
+⋮----
+// --- LLM Provider Implementations ---
+⋮----
+// OpenAI Provider Implementation
+class OpenAIProvider implements LLMProvider
+⋮----
+constructor(apiKey: string)
+⋮----
+async generate(options: LLMGenerateOptions): Promise<LLMResponse>
+⋮----
+// Handle response format for OpenAI
+⋮----
+// Only add response_format if it's specifically json_object
+⋮----
+// Google Gemini Provider Implementation
+class GeminiProvider implements LLMProvider
+⋮----
+constructor(apiKey: string, model: string = 'gemini-2.5-pro-exp-03-25', baseUrl: string = 'https://generativelanguage.googleapis.com/v1beta')
+⋮----
+const role = message.role === 'system' ? 'user' : message.role; // Gemini uses 'user' or 'model'
+⋮----
+role: role === 'assistant' ? 'model' : 'user', // Map assistant to model
+⋮----
+// Request body with improved configuration
+⋮----
+// Add JSON instructions but don't use responseFormat field (not supported by Gemini API)
+⋮----
+// For Gemini, we need to add instructions to ensure JSON output
+// Add a system instruction for JSON format
+⋮----
+// Better response validation and error handling
+⋮----
+// Check finish reason
+⋮----
+// Check content structure
+⋮----
+// Check for empty responses
+⋮----
+// Handle JSON responses
+⋮----
+// Clean up response text - remove any markdown code block markers
+⋮----
+// Check if the response is wrapped in a markdown code block
+⋮----
+// Validate it's valid JSON by parsing and stringifying
+⋮----
+// Return properly formatted JSON
+⋮----
+// Legacy method for compatibility
+async chat(params: { 
+    messages: { role: string; content: string }[]; 
+    temperature?: number; 
+    max_tokens?: number;
+}): Promise<LLMResponse>
+⋮----
+// Anthropic Claude Provider Implementation
+class ClaudeProvider implements LLMProvider
+⋮----
+constructor(apiKey: string, model: string = 'claude-3-opus-20240229', baseUrl: string = 'https://api.anthropic.com/v1')
+⋮----
+systemPrompt = message.content; // Capture system prompt
+return false; // Exclude from messages array
+⋮----
+role: message.role === 'assistant' ? 'assistant' : 'user', // Map system to user if needed, ensure user/assistant alternation
+⋮----
+// Basic validation for alternating roles (Claude requires user, assistant, user...)
+// This might need more sophisticated handling for multi-turn conversations
+⋮----
+max_tokens: options.maxTokens || 4000, // Claude often supports larger token counts
+⋮----
+body.system = systemPrompt; // Add system prompt if present
+⋮----
+// Legacy method for compatibility
+⋮----
+// Factory function - Now lives purely on the server
+export function createLLMProvider(provider: string, apiKey: string): LLMProvider | null
+⋮----
+// No need for console logs about env vars here unless debugging server-side config
+const resolvedProvider = (provider || process.env.LLM_PROVIDER || 'openai').toLowerCase(); // Use server-side env vars
+⋮----
+const geminiBaseUrl = process.env.GEMINI_BASE_URL; // Optional Base URL from server env
+⋮----
+// Helper to get API key from environment variables based on provider
+export async function getApiKeyForProvider(provider: string): Promise<string>
+⋮----
+// Helper to generate feature specs with any LLM provider
+export async function generateFeatureSpecContent(
+  provider: LLMProvider,
+  id: string,
+  title: string,
+  description: string,
+  problem: string,
+  outOfScope: string,
+  org: string,
+  repo: string,
+  branch: string,
+  date: string
+): Promise<Record<string, string>>
+⋮----
+// Create a message for the LLM
+⋮----
+// Generate the feature spec using the LLM
+⋮----
+// Parse the response as JSON
+⋮----
+// Fallback to template if JSON parsing fails
+⋮----
+// Return a template if the LLM call fails
+</file>
+
+<file path="styles/globals.css">
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+⋮----
+body {
+⋮----
+@layer utilities {
+⋮----
+.text-balance {
+⋮----
+@layer base {
+⋮----
+:root {
+.dark {
+⋮----
+* {
+⋮----
+/* Border styling removed */
+</file>
+
+<file path="app/layout.tsx">
+import type React from "react"
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+⋮----
+import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/toaster"
+import { RepositoryProvider } from "@/lib/github/context"
+⋮----
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>)
+</file>
+
+<file path="components/code-viewer.tsx">
+import type React from "react"
+⋮----
+import { useEffect, useState, useRef } from "react"
+import { Loader2, Copy, Check, ChevronDown, Search, X, ChevronUp, ChevronRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
+⋮----
+interface CodeViewerProps {
+  filePath?: string | null
+  code?: string | null
+  language?: string
+  searchTerm?: string
+  onSearchChange?: (term: string) => void
+}
+⋮----
+// Define line interface
+interface CodeLine {
+  number: number;
+  content: string;
+  isFoldable?: boolean;
+  isFolded?: boolean;
+  indentation?: number;
+  hidden?: boolean;
+  highlighted?: boolean;
+}
+⋮----
+// Debugging: Log props when they change
+⋮----
+// Update local search term when prop changes
+⋮----
+// Determine language based on file extension
+⋮----
+// When initialCode changes, process it
+⋮----
+// Reset state when filePath changes
+⋮----
+// Important: If initialCode is already provided, process it
+⋮----
+const processCodeContent = (content: string) =>
+⋮----
+// Process code into lines with folding information
+⋮----
+// Handle search within file
+⋮----
+// We need to avoid updating codeLines if the highlighted state hasn't actually changed
+// This is likely causing the infinite loop
+⋮----
+// Scroll to first result if any
+⋮----
+const handleCopyCode = () =>
+⋮----
+const toggleFold = (lineIndex: number) =>
+⋮----
+// If folding, hide all lines with greater indentation until we reach a line with equal or less indentation
+⋮----
+// If unfolding, show all lines until we reach a line with equal or less indentation
+⋮----
+const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+⋮----
+const clearSearch = () =>
+⋮----
+const navigateSearch = (direction: "next" | "prev") =>
+⋮----
+// Scroll to the selected search result
+⋮----
+// Show debug info if no code content is available
+⋮----
+// Add this function to apply basic syntax highlighting
+const applyBasicSyntaxHighlighting = (content: string, language: string) =>
+⋮----
+// This is a very simplified version of syntax highlighting
+// In a real app, you'd want to use a proper tokenizer
+⋮----
+// Highlight keywords
+⋮----
+// Highlight strings
+⋮----
+// Highlight comments
+⋮----
+// Highlight numbers
+⋮----
+{/* In-file search */}
+⋮----
+{/* Line numbers */}
+⋮----
+{/* Code content */}
+⋮----
+// Apply basic syntax highlighting
+⋮----
+className=
+</file>
+
+<file path="components/repo-summary.tsx">
+interface RepoSummaryProps {
+  summary?: string;
+  repository?: any;
+  repomixSummary?: {
+    overview?: string;
+    aiAnalysis?: string;
+    features?: string[];
+    architecture?: string[];
+    languages?: { name: string; percentage: number }[];
+    statistics?: any;
+    file_count?: number;
+    directory_count?: number;
+    key_files?: string[];
+  };
+  onSelectFile?: (path: string) => void;
+  onRefreshSummary?: () => void;
+}
+⋮----
+// Use repository summary if available, otherwise use provided summary
+⋮----
+// Use features from repomix or fallback to default
+⋮----
+// Use architecture from repomix or fallback to default
+⋮----
+// Check if we have detailed AI analysis
+⋮----
+// Compute key files to display
+⋮----
+// Handle file selection
+const handleFileClick = (path: string) =>
+</file>
+
+<file path="lib/github/context.tsx">
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { 
+  Repository, 
+  Branch, 
+  Contributor, 
+  RepositoryIdentifier,
+  FileNode,
+  parseRepositoryUrl,
+  getRepositoryStats,
+  getRepositoryDetailedStats,
+  getRepositoryFileStructure
+} from '@/lib/github';
+⋮----
+// Repository data interface
+interface RepositoryData {
+  repository: Repository;
+  branches: Branch[];
+  contributors: Contributor[];
+  languages: Record<string, number>;
+  fileStructure?: FileNode[];
+  pullRequests?: any[];
+  commitActivity?: any;
+  codeFrequency?: any;
+  participation?: any;
+  localPath?: string; // Add local path for cloned repos
+  isLocal?: boolean; // Flag to indicate if the repo is available locally
+  repomixSummary?: any; // Add repomix summary
+  repomixContent?: string; // Add this line
+}
+⋮----
+localPath?: string; // Add local path for cloned repos
+isLocal?: boolean; // Flag to indicate if the repo is available locally
+repomixSummary?: any; // Add repomix summary
+repomixContent?: string; // Add this line
+⋮----
+// Context interface
+interface RepositoryContextType {
+  repositories: Record<string, RepositoryData>;
+  currentRepository: string | null;
+  isLoading: boolean;
+  error: string | null;
+  connectRepository: (url: string) => Promise<void>;
+  selectRepository: (repoFullName: string) => void;
+  getRepositoryData: (repoFullName: string) => RepositoryData | null;
+  getRepositoryFiles: (repoFullName: string) => Promise<FileNode[]>;
+  getRepositoryFileContent: (repoFullName: string, path: string) => Promise<string>;
+  getRepositoryDetailedStats: (repoFullName: string) => Promise<void>;
+  getLocalRepositoryStructure: (repoFullName: string) => Promise<FileNode[]>;
+  getLocalFileContent: (repoFullName: string, filePath: string) => Promise<string>;
+  getRepomixSummary: (repoFullName: string) => Promise<any>;
+  getRepomixFiles: (repoFullName: string) => Promise<string[]>;
+  generateRepomixSummary: (repoFullName: string) => Promise<boolean>;
+}
+⋮----
+// Create the context
+⋮----
+// Provider component
+export function RepositoryProvider(
+⋮----
+// Initialize from session storage on mount
+⋮----
+// Important: Don't set the user_selected_repo flag during initialization
+// That should only be set when a user explicitly selects a repository
+⋮----
+// Connect to a repository
+const connectRepository = async (url: string) =>
+⋮----
+// Parse repository URL
+⋮----
+// First, try to clone the repository locally
+⋮----
+// Continue with remote API if local clone fails
+⋮----
+// Fetch repository data from GitHub API
+⋮----
+// Store in state
+⋮----
+isLocal: cloneResponse.ok, // Flag if the repo was cloned successfully
+⋮----
+// Set a flag in session storage to indicate this was an explicit user selection
+⋮----
+// Store in session storage
+⋮----
+// Select a repository
+const selectRepository = (repoFullName: string) =>
+⋮----
+// Set a flag in session storage to indicate this was an explicit user selection
+⋮----
+// Get repository data
+const getRepositoryData = (repoFullName: string): RepositoryData | null =>
+⋮----
+// Get repository file structure
+const getRepositoryFiles = async (repoFullName: string): Promise<FileNode[]> =>
+⋮----
+// If repository is available locally, use local file structure
+⋮----
+// Otherwise, fallback to GitHub API
+⋮----
+// Get file structure
+⋮----
+// Update repositories state
+⋮----
+// Get repository file content
+const getRepositoryFileContent = async (repoFullName: string, path: string): Promise<string> =>
+⋮----
+// If repository is available locally, use local file content
+⋮----
+// Otherwise, fallback to GitHub API
+⋮----
+// Get detailed repository statistics
+const fetchDetailedRepositoryStats = async (repoFullName: string): Promise<void> =>
+⋮----
+// Parse repository identifier
+⋮----
+// Get detailed stats
+⋮----
+// Update repositories state
+⋮----
+// Get local repository structure
+const getLocalRepositoryStructure = async (repoFullName: string): Promise<FileNode[]> =>
+⋮----
+// Fetch local file structure
+⋮----
+// Update repositories state
+⋮----
+// Get local file content
+const getLocalFileContent = async (repoFullName: string, filePath: string): Promise<string> =>
+⋮----
+// Fetch local file content
+⋮----
+// Get repomix summary for a repository
+const getRepomixSummary = async (repoFullName: string): Promise<any> =>
+⋮----
+// If we already have repomix summary, return existing data
+// Keep the repomixContent check for now, might be used elsewhere
+⋮----
+// If repository is not available locally, throw error
+⋮----
+// Allow fetching summary even if not local, as the file might exist from a previous clone
+⋮----
+// throw new Error('Repository not available locally');
+⋮----
+// Get the summary using the repomix-summary endpoint (POST)
+⋮----
+// Handle 404 specifically - summary file not found
+⋮----
+// Set summary to null or an empty object to indicate it's not available
+⋮----
+repomixSummary: null, // Indicate summary not found
+⋮----
+return null; // Return null or handle as needed in the UI
+⋮----
+// Handle other errors
+⋮----
+// Parse the response which contains { summary: ... }
+⋮----
+const summaryData = responseData.summary; // Extract the summary object
+⋮----
+// Get the raw XML content (keep this fetch for now, might be used by AIAnalysis or other components)
+⋮----
+// Update repository data with repomix summary and content
+⋮----
+repomixSummary: summaryData, // Store the extracted summary object
+⋮----
+return summaryData; // Return the extracted summary object
+⋮----
+// Get repomix files for a repository
+const getRepomixFiles = async (repoFullName: string): Promise<string[]> =>
+⋮----
+// If repository is not available locally, throw error
+⋮----
+// Fetch repomix files
+⋮----
+// Generate repomix summary for a repository
+const generateRepomixSummary = async (repoFullName: string): Promise<boolean> =>
+⋮----
+// If repository is not available locally, throw error
+⋮----
+// Generate repomix summary
+⋮----
+// Fetch the updated summary
+⋮----
+// Provide context
+⋮----
+// Hook for using repository context
+</file>
+
+<file path=".env.example">
+# ===========================================
+# LLM PROVIDER CONFIGURATION 
+# ===========================================
+# Change this to select your preferred AI model provider
+# Options: openai, gemini, claude
+NEXT_PUBLIC_LLM_PROVIDER=openai
+
+# ===========================================
+# OPENAI CONFIGURATION
+# ===========================================
+# Get your API key from: https://platform.openai.com/api-keys
+# API Key is kept server-side if possible, but needed here if used directly in client components
+OPENAI_API_KEY=your_openai_api_key_here 
+NEXT_PUBLIC_OPENAI_BASE_URL=https://api.openai.com/v1
+NEXT_PUBLIC_OPENAI_MODEL=gpt-4o
+
+# ===========================================
+# GOOGLE GEMINI CONFIGURATION
+# ===========================================
+# Get your API key from: https://ai.google.dev/tutorials/setup
+# API Key is kept server-side for security
+GEMINI_API_KEY=your_gemini_api_key_here
+NEXT_PUBLIC_GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
+NEXT_PUBLIC_GEMINI_MODEL=gemini-pro
+
+# ===========================================
+# ANTHROPIC CLAUDE CONFIGURATION
+# ===========================================
+# Get your API key from: https://console.anthropic.com/
+# API Key is kept server-side for security
+CLAUDE_API_KEY=your_claude_api_key_here
+NEXT_PUBLIC_CLAUDE_BASE_URL=https://api.anthropic.com/v1
+NEXT_PUBLIC_CLAUDE_MODEL=claude-3-opus-20240229
+
+# ===========================================
+# GITHUB CONFIGURATION
+# ===========================================
+# Get your API key from: https://github.com/settings/tokens
+GITHUB_API_KEY=your_github_api_key_here
+NEXT_PUBLIC_GITHUB_API_KEY=your_github_api_key_here # Public key needed for client-side GitHub operations if any
+GITHUB_BASE_URL=https://api.github.com
+</file>
+
+<file path=".gitignore">
+node_modules
+.env
+.cursor
+.next
+
+# Local repository storage
+/storage/repos/
+.ai
+</file>
+
+<file path="package.json">
+{
+  "name": "my-v0-project",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "latest",
+    "@hookform/resolvers": "^3.9.1",
+    "@radix-ui/react-accordion": "^1.2.2",
+    "@radix-ui/react-alert-dialog": "^1.1.4",
+    "@radix-ui/react-aspect-ratio": "^1.1.1",
+    "@radix-ui/react-avatar": "latest",
+    "@radix-ui/react-checkbox": "^1.1.3",
+    "@radix-ui/react-collapsible": "latest",
+    "@radix-ui/react-context-menu": "^2.2.4",
+    "@radix-ui/react-dialog": "latest",
+    "@radix-ui/react-dropdown-menu": "latest",
+    "@radix-ui/react-hover-card": "^1.1.4",
+    "@radix-ui/react-label": "^2.1.1",
+    "@radix-ui/react-menubar": "^1.1.4",
+    "@radix-ui/react-navigation-menu": "^1.2.3",
+    "@radix-ui/react-popover": "^1.1.4",
+    "@radix-ui/react-progress": "^1.1.1",
+    "@radix-ui/react-radio-group": "^1.2.2",
+    "@radix-ui/react-scroll-area": "latest",
+    "@radix-ui/react-select": "^2.1.4",
+    "@radix-ui/react-separator": "latest",
+    "@radix-ui/react-slider": "latest",
+    "@radix-ui/react-slot": "^1.1.1",
+    "@radix-ui/react-switch": "latest",
+    "@radix-ui/react-tabs": "^1.1.2",
+    "@radix-ui/react-toast": "^1.2.4",
+    "@radix-ui/react-toggle": "^1.1.1",
+    "@radix-ui/react-toggle-group": "^1.1.1",
+    "@radix-ui/react-tooltip": "latest",
+    "@types/mermaid": "^9.2.0",
+    "@types/uuid": "^10.0.0",
+    "@xmldom/xmldom": "^0.8.10",
+    "ai": "latest",
+    "autoprefixer": "^10.4.20",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "1.0.4",
+    "d3": "latest",
+    "date-fns": "4.1.0",
+    "dotenv": "^16.5.0",
+    "embla-carousel-react": "8.5.1",
+    "html-entities": "^2.6.0",
+    "input-otp": "1.4.1",
+    "lucide-react": "^0.454.0",
+    "markdown-to-jsx": "^7.7.4",
+    "mermaid": "^11.6.0",
+    "next": "15.2.4",
+    "next-themes": "latest",
+    "openai": "^4.95.1",
+    "react": "^19",
+    "react-day-picker": "8.10.1",
+    "react-dom": "^19",
+    "react-hook-form": "^7.54.1",
+    "react-markdown": "^10.1.0",
+    "react-resizable-panels": "latest",
+    "recharts": "2.15.0",
+    "remark-gfm": "^4.0.1",
+    "sonner": "^1.7.1",
+    "tailwind-merge": "^2.5.5",
+    "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.1.0",
+    "vaul": "^0.9.6",
+    "xml2js": "^0.6.2",
+    "xmldom": "^0.6.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/xml2js": "^0.4.14",
+    "@types/xmldom": "^0.1.34",
+    "dependency-cruiser": "^16.10.1",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5"
+  }
 }
 </file>
 
